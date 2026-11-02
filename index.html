@@ -1,0 +1,1905 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>THE LAST ROOM — Creator Build</title>
+<style>
+:root{--bg:#030306;--panel:#0e0b10;--red:#ef2654;--text:#f1ebef;--muted:#948b91;--line:#4b2a36;--gold:#d8bf73;--green:#8fd3ad}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#020204;color:var(--text);font-family:Georgia,serif}
+body{background:radial-gradient(circle at 50% 0,#241018 0,#09070a 38%,#020204 78%);overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:70;opacity:.07;background:repeating-linear-gradient(0deg,transparent 0 3px,#fff 3px 4px);mix-blend-mode:screen}
+body:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:69;background:radial-gradient(ellipse at center,transparent 47%,rgba(0,0,0,.84) 100%)}
+#app{max-width:1120px;min-height:100vh;margin:auto;padding:22px;position:relative}
+h1{text-align:center;font-size:clamp(46px,9vw,96px);letter-spacing:.14em;margin:20px 0 8px;text-shadow:0 0 28px var(--red)}
+h2{color:#ff3760;letter-spacing:.07em;margin-top:0}
+.kicker{text-align:center;font:11px Arial,sans-serif;letter-spacing:.32em;color:#a89ba1;text-transform:uppercase}
+.subtitle{text-align:center;color:var(--muted);line-height:1.8;max-width:700px;margin:0 auto 30px}
+.top{display:grid;grid-template-columns:1fr auto auto auto auto;gap:12px;align-items:center;border-bottom:1px solid var(--line);padding:11px 0;margin-bottom:22px;font:11px Arial,sans-serif;letter-spacing:.07em;color:#aaa}
+.story{min-height:350px;font-size:19px;line-height:1.82}
+.story strong{color:#ff3b64}
+.panel{border:1px solid var(--line);background:rgba(12,9,13,.84);padding:15px;margin:14px 0;border-radius:5px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid button{margin:0}
+button,input{font:inherit}
+button{width:100%;padding:14px 16px;margin:7px 0;background:#130f14;border:1px solid #5a313e;color:#fff;border-radius:5px;text-align:left;cursor:pointer;transition:.15s}
+button:hover{border-color:var(--red);background:#291019;transform:translateX(3px)}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.primary{text-align:center;background:#73112d;border-color:#bd294d;font-weight:bold;letter-spacing:.08em}
+input{width:100%;padding:13px;background:#08070a;border:1px solid #59313e;color:#fff;border-radius:4px}
+.inv{border-top:1px solid var(--line);margin-top:20px;padding-top:12px;font:11px Arial,sans-serif;color:#aaa}
+.item{display:inline-block;border:1px solid #4d3038;padding:6px 8px;margin:3px;border-radius:4px;color:#eee}
+.muted{color:var(--muted)}.danger{color:#ff315b}.ok{color:var(--green)}.gold{color:var(--gold)}.center{text-align:center}
+.batteryWrap{position:fixed;right:18px;bottom:18px;z-index:75;width:150px;height:9px;background:#1a0e12;border:1px solid #5a3c28;border-radius:6px;overflow:hidden;box-shadow:0 0 12px rgba(0,0,0,.8)}.batteryWrap i{display:block;height:100%;background:#d5b75e;transition:width .25s}.flashHud{position:fixed;right:18px;bottom:32px;z-index:75;font:11px Arial,sans-serif;color:#e6d18b;background:rgba(5,5,7,.82);padding:5px 8px;border-radius:4px}
+#dark{position:fixed;inset:0;z-index:60;background:radial-gradient(circle at 50% 50%,transparent 0 10%,rgba(0,0,0,.98) 34%,#000 73%);opacity:0;pointer-events:none;transition:.18s}
+#dark.on{opacity:1}
+/* Die Dunkelheit verdunkelt die Szene, blockiert aber keine Steuerung. */
+#blackoutTimer{position:fixed;top:65px;left:50%;transform:translateX(-50%);z-index:90;display:none;min-width:220px;text-align:center;background:rgba(8,3,7,.95);border:1px solid #9d2648;padding:10px 18px;border-radius:8px;box-shadow:0 0 25px #20050b;color:#f7c3cc;pointer-events:none}
+#blackoutTimer.on{display:block}
+#blackoutTimer small{display:block;font:10px Arial,sans-serif;letter-spacing:.12em;margin-bottom:5px}
+#blackoutTimer strong{font:700 31px monospace;color:#ff4264}
+@media(max-width:600px){#blackoutTimer{top:95px}}
+#scare{position:fixed;inset:0;z-index:100;background:#000;display:none;align-items:center;justify-content:center;font-size:min(44vw,320px);text-shadow:0 0 34px #ff1c4e}
+#scare.on{display:flex;animation:jolt .42s ease-out}
+@keyframes jolt{0%{transform:scale(.2);opacity:0}45%{transform:scale(1.25);opacity:1}100%{transform:scale(1)}}
+#toast{position:fixed;left:50%;bottom:25px;transform:translateX(-50%);z-index:120;background:#130e13;border:1px solid #753149;padding:10px 14px;border-radius:5px;font:12px Arial,sans-serif;color:#ddd;opacity:0;transition:.2s;pointer-events:none}
+#toast.on{opacity:1}
+.symbols{text-align:center;font-size:clamp(32px,6vw,58px);letter-spacing:.22em;margin:18px 0;color:#e9dfe3}
+.puzzleBoard{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:600px;margin:20px auto}
+.piece{aspect-ratio:4/3;border:1px solid #623544;background:#161116;display:flex;align-items:center;justify-content:center;font-size:clamp(26px,5vw,50px);cursor:pointer;user-select:none}
+.piece.sel{outline:2px solid #ff315b;box-shadow:0 0 16px #7c0d2b}
+.note{font-family:"Courier New",monospace;background:#0a090c;border-left:3px solid #8d1535;padding:12px 14px}
+.codeRow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:420px;margin:18px auto}
+.codeRow input{text-align:center;font-size:24px}
+@media(max-width:700px){#app{padding:15px}.grid{grid-template-columns:1fr}.top{grid-template-columns:1fr 1fr;gap:7px}.story{font-size:17px;min-height:390px}.piece{font-size:30px}}
+
+.creatorCard{max-width:720px;margin:18px auto;border:1px solid #6a3041;background:rgba(12,8,12,.92);padding:18px;border-radius:6px}
+.warning{font-family:Arial,sans-serif;font-size:13px;line-height:1.7;color:#c8bdc2}
+.statGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-width:620px;margin:22px auto}
+.stat{border:1px solid #4b2a36;background:#0b090c;padding:14px;text-align:center;font-family:Arial,sans-serif}
+.stat b{display:block;font-size:24px;color:#ff365f;margin-top:5px}
+#creature{position:fixed;right:-180px;bottom:0;z-index:58;width:150px;height:55vh;opacity:0;pointer-events:none;
+background:linear-gradient(90deg,transparent,rgba(0,0,0,.98));filter:drop-shadow(0 0 18px #5b0a20);transition:.35s}
+#creature:after{content:"●  ●";position:absolute;top:24%;right:25px;color:#eee;font-size:18px;letter-spacing:13px;text-shadow:0 0 12px #fff}
+#creature.peek{right:0;opacity:.92}
+.fakeCrash{position:fixed;inset:0;z-index:200;background:#050505;color:#d8d8d8;font:15px "Courier New",monospace;padding:7vw;display:none}
+.fakeCrash.on{display:block}
+@media(max-width:700px){.statGrid{grid-template-columns:1fr}}
+
+
+#dollScare{position:fixed;inset:0;z-index:250;background:#000;display:none;align-items:center;justify-content:center;overflow:hidden}
+#dollScare.on{display:flex;animation:dollFlash .62s steps(2,end)}
+#dollScare img{width:100vw;height:100vh;object-fit:cover;filter:contrast(1.35) brightness(.7) saturate(.65);animation:dollZoom .62s ease-out}
+@keyframes dollZoom{0%{transform:scale(.55)}35%{transform:scale(1.28)}100%{transform:scale(1.05)}}
+@keyframes dollFlash{0%,30%,70%{filter:brightness(1)}15%,55%{filter:brightness(2.5)}}
+
+
+#flashFixed{
+ position:fixed;
+ top:12px;
+ right:12px;
+ z-index:9999;
+ padding:7px 10px;
+ margin:0;
+ background:rgba(5,5,7,.94);
+ border:1px solid #5a3c28;
+ border-radius:5px;
+ color:#e6d18b;
+ font:12px Arial,sans-serif;
+ line-height:1;
+ box-shadow:0 0 12px rgba(0,0,0,.8);
+ pointer-events:none;
+}
+.batteryWrap,.flashHud{display:none!important}
+@media(max-width:700px){
+ #flashFixed{top:7px;right:7px;font-size:10px;padding:5px 7px}
+}
+
+#handScare{
+ position:fixed;inset:0;z-index:270;display:none;align-items:flex-end;justify-content:center;
+ background:rgba(0,0,0,.96);overflow:hidden;pointer-events:none
+}
+#handScare.on{display:flex}
+#handScare .hand{
+ font-size:min(70vw,520px);line-height:.8;filter:grayscale(1) contrast(2) brightness(.55) drop-shadow(0 0 24px #d81442);
+ transform:translateY(120%) scale(.6);animation:handRush .85s cubic-bezier(.15,.9,.2,1)
+}
+@keyframes handRush{
+ 0%{transform:translateY(120%) scale(.55)}
+ 55%{transform:translateY(8%) scale(1.18)}
+ 100%{transform:translateY(-7%) scale(1.38)}
+}
+.sanityLow{animation:sanityPulse .8s infinite}
+@keyframes sanityPulse{50%{filter:contrast(1.2) brightness(.72)}}
+.musicWait{font-family:"Courier New",monospace;letter-spacing:.12em;color:#9c8f95;min-height:130px}
+
+
+/* 2.0 ALPHA */
+#introOverlay,#musicOverlay{position:fixed;inset:0;z-index:600;background:radial-gradient(ellipse at center,#211018,#030204 76%);display:none;align-items:center;justify-content:center;text-align:center;padding:24px;color:#e4c7c9}
+#introOverlay.on,#musicOverlay.on{display:flex}
+.introInner{max-width:700px;width:100%}.whisperLine{font:clamp(20px,4vw,38px) Georgia,serif;letter-spacing:.07em;text-shadow:0 0 20px #8c1e37;min-height:140px;animation:whisperFade 3s ease-in-out}
+@keyframes whisperFade{0%{opacity:0;transform:scale(.96)}25%,75%{opacity:1}100%{opacity:.3}}
+.bloodbar{display:inline-block;color:#e08a94;border:1px solid #703039;padding:4px 7px;margin-left:6px}
+#bloodBtn{border-color:#762d42;color:#e8a2ae}.bloodShade{position:fixed;inset:0;pointer-events:none;z-index:80;box-shadow:inset 0 0 90px rgba(125,0,25,.36)}
+.portrait{position:relative;width:min(100%,460px);margin:18px auto;background:linear-gradient(145deg,#5e4335,#1c1417);border:13px ridge #725139;overflow:hidden;box-shadow:0 0 25px #100708}
+.portrait svg{width:100%;height:100%}.portraitGrid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);pointer-events:none}.portraitGrid span{border:1px dashed rgba(255,220,180,.25)}
+#musicOverlay .whisperLine{min-height:75px;font-size:clamp(18px,3vw,29px)}
+.musicDoll{font-size:80px;filter:drop-shadow(0 0 22px #a52641);animation:musicTurn 8s ease-in-out infinite alternate}@keyframes musicTurn{to{transform:rotate(13deg) scale(1.08)}}
+@media(prefers-reduced-motion:reduce){.whisperLine,.musicDoll{animation:none}}
+
+/* Porträt-Enthüllung: langsame Verwandlung, einmaliger Schreckmoment */
+#portraitScene{position:fixed;inset:0;z-index:850;display:none;align-items:center;justify-content:center;flex-direction:column;background:#060407;color:#ead9d7;padding:16px;text-align:center;overflow:hidden}
+#portraitScene.on{display:flex}
+#portraitScene .stageFrame{position:relative;width:min(85vw,780px);aspect-ratio:766/1024;max-height:72vh;border:13px ridge #62452d;box-shadow:0 0 35px #000;overflow:hidden;background:#1b1014}
+#portraitScene .stageFrame img{width:100%;height:100%;object-fit:contain;transition:filter 3s ease,transform 3s ease}
+#portraitScene.corrupt .stageFrame img{filter:contrast(2.5) grayscale(.8) sepia(.8) brightness(.44) hue-rotate(295deg);transform:scale(1.11)}
+#portraitScene .faceDark{position:absolute;inset:0;opacity:0;transition:opacity 2.5s ease;background:radial-gradient(ellipse at 33% 34%,#000 0 5%,transparent 13%),radial-gradient(ellipse at 62% 34%,#000 0 5%,transparent 13%),radial-gradient(ellipse at center,transparent 10%,rgba(70,0,15,.5) 100%);mix-blend-mode:multiply}
+#portraitScene.corrupt .faceDark{opacity:1}
+#portraitScene .sceneCaption{min-height:65px;margin-top:18px;font:clamp(16px,2.5vw,25px) Georgia,serif;letter-spacing:.05em}
+#portraitScene .scareFace{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none}
+#portraitScene.attack .scareFace{opacity:1;animation:portraitLunge .56s cubic-bezier(.13,.7,.2,1) forwards}
+@keyframes portraitLunge{0%{transform:scale(.35);filter:blur(5px)}55%{transform:scale(1.8);filter:contrast(1.6)}100%{transform:scale(3.4);filter:brightness(.3)}}
+#portraitScene.blackout{background:#000}
+#portraitScene.blackout .stageFrame,#portraitScene.blackout .sceneCaption,#portraitScene.blackout .scareFace{visibility:hidden}
+#portraitScene button{margin-top:12px}
+@media(prefers-reduced-motion:reduce){#portraitScene.attack .scareFace{animation:none;opacity:1}}
+
+/* Spieluhr: Der Schreckmoment muss über der gesperrten Szene liegen. */
+body.musicBoxActive #dollScare{z-index:750}
+body.musicBoxActive #dollScare img{content:url("vorhangmann-jumpscare.jpg");filter:contrast(1.65) brightness(.82) saturate(.75)}
+#musicEscape{border-color:#8a3347;color:#f1b0ba}
+
+/* Taschenlampen-Spinne: eigenständiger Jumpscare */
+#spiderScene{position:fixed;inset:0;z-index:960;display:none;align-items:center;justify-content:center;background:#020203;color:#e6d8d6;overflow:hidden;text-align:center}
+#spiderScene.on{display:flex}
+#spiderScene .spiderIntro{font:clamp(19px,3vw,30px) Georgia,serif;padding:24px;max-width:700px}
+#spiderScene .spiderVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none;filter:contrast(1.45) brightness(.7)}
+#spiderScene.pounce .spiderVideo{opacity:1}
+@keyframes spiderLunge{0%{transform:scale(.18) translateY(65%);filter:blur(8px) brightness(.3)}42%{transform:scale(.85);filter:blur(0) brightness(.9)}100%{transform:scale(2.7);filter:brightness(.25)}}
+#spiderScene .spiderQuestion{display:none;max-width:740px;padding:25px;font:clamp(23px,4.2vw,44px) Georgia,serif;letter-spacing:.04em;line-height:1.5;text-shadow:0 0 22px #6d1828}
+#spiderScene.question .spiderIntro,#spiderScene.question .spiderVideo{display:none}
+#spiderScene.question .spiderQuestion{display:block;animation:spiderWords 3s ease both}
+@keyframes spiderWords{from{opacity:0;filter:blur(7px)}to{opacity:1;filter:blur(0)}}
+#spiderScene.blackout .spiderIntro,#spiderScene.blackout .spiderVideo{display:none}
+@media(prefers-reduced-motion:reduce){#spiderScene.pounce .spiderVideo{animation:none;opacity:1}#spiderScene.question .spiderQuestion{animation:none}}
+#portraitScene .sceneCaption{display:none}
+#portraitScene #portraitSceneSkip{position:absolute;bottom:10px;right:10px;opacity:0;transition:opacity .2s}
+#portraitScene #portraitSceneSkip:focus-visible{opacity:1}
+
+.clockFace{position:relative;margin:12px auto;width:min(240px,66vw);aspect-ratio:1;border:10px ridge #82664c;border-radius:50%;background:radial-gradient(circle,#d7c4a0,#a88e68);box-shadow:0 0 30px #000;color:#2b1b17}
+.clockFace .hand{position:absolute;left:50%;bottom:50%;width:5px;height:31%;background:#251811;transform-origin:bottom center;border-radius:3px}
+.clockFace .hand.hour{height:23%;width:8px}
+.clockFace .pin{position:absolute;top:47%;left:47%;height:6%;width:6%;background:#321a16;border-radius:50%}
+.clockFace .numeral{position:absolute;left:50%;top:50%;font:17px Georgia,serif;transform:translate(-50%,-50%)}
+.clockControls{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin:15px auto}
+.clockControls label{display:flex;align-items:center;gap:9px}
+.clockControls select{width:95px;padding:9px;background:#1c1515;color:#e6d7cd;border:1px solid #88644c}
+#letterOverlay{position:fixed;inset:0;z-index:820;display:none;background:rgba(4,3,5,.97);overflow:auto;padding:25px;align-items:center;justify-content:center}
+#letterOverlay.on{display:flex}
+#letterOverlay .letterPage{max-width:660px;width:100%;padding:25px;background:#d1bc98;color:#39231b;border:10px ridge #65422d;box-shadow:0 0 60px #000}
+#letterOverlay .letterPage p{font:clamp(18px,2.8vw,24px)/1.6 Georgia,serif;white-space:pre-line}
+#letterOverlay button{margin:9px 6px 0 0}
+#app .blackMirrorPane{height:220px;max-width:410px;margin:10px auto 20px;border:12px ridge #56434c;border-radius:48% 48% 12% 12%;background:radial-gradient(ellipse at 50% 45%,#08090e 0%,#000 70%);box-shadow:inset 0 0 40px #130c19,0 0 28px #09080b;animation:mirrorFade 2.8s ease-out both}
+@keyframes mirrorFade{from{background:#777;filter:brightness(1)}to{filter:brightness(.3)}}
+</style>
+</head>
+<body>
+<div id="flashFixed">🔦 <span id="flashPercent">100%</span></div><div id="blackoutTimer" role="status" aria-live="off" aria-label="Verbleibende Zeit ohne Batterie"><small>LICHT AUS · DER VORHANGMANN KOMMT</small><strong id="blackoutSeconds">00:30</strong></div><div id="dark"></div>
+<div id="scare">◉</div>
+<div id="toast"></div><div id="creature"></div><div id="fakeCrash" class="fakeCrash"></div><div id="dollScare"><img src="doll-jumpscare.jpg" alt=""></div><div id="handScare"><div class="hand">🖐️</div></div>
+<audio id="ritualAudio" src="romina-ritualfluestern.mp3" preload="auto"></audio>
+<audio id="music" src="Kellerflur.mp3" loop preload="auto"></audio>
+<audio id="introMusic" src="intro-spieluhr-sanft.mp3" preload="auto" loop></audio><audio id="introNoise" src="intro-rauschen.mp3" preload="auto" loop></audio><audio id="daisy" src="spieluhr-mit-fluestern.mp3" preload="auto"></audio><audio id="introAudio" src="intro-romina.mp3" preload="auto"></audio>
+<div id="introOverlay" role="dialog" aria-label="Einführung"><div class="introInner"><div class="kicker">DIE VORSTELLUNG BEGINNT</div><div id="introLine" class="whisperLine"></div><button id="introSkip">Intro überspringen</button></div></div><div id="musicOverlay" role="dialog" aria-label="Spieluhr"><div class="introInner"><div class="kicker">DU MUSST ZUHÖREN</div><div class="musicDoll">♟</div><h2>DAISY BELL</h2><div id="whisperLine" class="whisperLine"></div><p id="musicStatus" class="muted">Die Walze dreht sich …</p><button id="musicEscape" style="font-size:12px">🩸 Vorzeitig verlassen (30 Blut)</button></div></div><div id="portraitScene" role="dialog" aria-label="Das vollständige Porträt" aria-modal="true"><div class="stageFrame"><img src="romina-silas-vor-dem-verschwinden.jpg" alt="Romina und Silas auf der alten Bühne"><video id="portraitAnimation" src="puppeteer-befreiung.mp4" preload="auto" playsinline style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#080506"></video><div class="faceDark"></div></div><div id="portraitCaption" class="sceneCaption"></div><button id="portraitSceneSkip" aria-label="Animation überspringen">Animation überspringen</button><img class="scareFace" src="vorhangmann-jumpscare.jpg" alt=""></div><div id="puppeteerEncounter" role="dialog" aria-modal="true" aria-label="The Puppeteer stellt sich vor" style="display:none;position:fixed;inset:0;z-index:920;background:radial-gradient(ellipse,#290912,#030204 75%);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;color:#f5dce3"><img src="vorhangmann-jumpscare.jpg" alt="The Puppeteer" style="width:min(55vw,380px);max-height:55vh;object-fit:contain;filter:brightness(.55) contrast(1.3)"><p id="puppeteerEncounterText" style="font:clamp(18px,3vw,30px) Georgia,serif">Ob versteckt oder nicht … ICH KOMME!</p><button id="puppeteerEncounterContinue" style="display:none">Weitergehen</button></div><div id="spiderScene" role="dialog" aria-modal="true" aria-label="Die Spinne"><div class="spiderIntro" id="spiderIntro">Du hebst die staubige Taschenlampe auf …</div><video class="spiderVideo" id="spiderVideo" src="spinnen-jumpscare.mp4" preload="auto" playsinline aria-label="Eine Spinne springt auf dich zu"></video><div class="spiderQuestion">Bist du dir sicher, dass sie nicht mehr auf dir sitzt?</div></div><div id="letterOverlay" role="dialog" aria-modal="true" aria-label="Rominas Brief"><div class="letterPage"><h2>Der letzte Brief</h2><p id="letterText"></p><button id="letterSkip">Brief vollständig anzeigen</button><button id="letterContinue" style="display:none">Brief anheben</button></div></div><audio id="letterAudio" src="rominas-brief.mp3" preload="auto"></audio><div id="app"></div>
+<script>
+(function(){
+"use strict";
+
+var app=document.getElementById("app"),dark=document.getElementById("dark"),scare=document.getElementById("scare"),toastEl=document.getElementById("toast"),music=document.getElementById("music"),daisy=document.getElementById("daisy");
+var S={
+ name:"",time:3600,difficulty:"normal",penaltyFactor:1,panic:0,sanity:100,battery:100,light:true,blackoutRemaining:null,items:[],flags:{},pieces:[],room:"Start",
+ ended:false,visits:{},wrong:0,sound:true,secrets:0,jumps:0,startStamp:0,creature:0,variant:null,blood:100,sacrifices:0,paidHints:[],locked:false
+};
+// ROMINA: Die Audioaufnahme wird pro Spieldurchlauf höchstens einmal angefragt.
+// Der Worker liefert gecachte Namen. Nicht gecachte Namen bleiben ohne Admin-Token gesperrt.
+var ROMINA_VOICE_ENABLED=true;
+var ROMINA_VOICE_ENDPOINT="https://the-last-room-romina.lostpuppetplayer.workers.dev/speak";
+var rominaWhisperUrl=null,rominaWhisperAudio=null,rominaWhisperPending=false;
+var rominaWhisperNext=0,rominaWhisperCount=0;
+function prepareRominaWhisper(name){
+ if(!ROMINA_VOICE_ENABLED||rominaWhisperPending||rominaWhisperUrl)return;
+ // Nur ein kurzer Name; keine freie Texteingabe an den Sprachdienst.
+ // Der geheime Admin-Token darf NIEMALS im Browsercode stehen.
+ if(!/^[\p{L}][\p{L} '-]{0,23}$/u.test(name))return;
+ rominaWhisperPending=true;
+ fetch(ROMINA_VOICE_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name})})
+ .then(function(r){if(!r.ok)throw Error("Romina nicht verfügbar");return r.blob()})
+ .then(function(b){if(!b.type.startsWith("audio/")||b.size>1000000)throw Error("Ungültiges Audio");
+   rominaWhisperUrl=URL.createObjectURL(b);rominaWhisperAudio=new Audio(rominaWhisperUrl);
+   rominaWhisperAudio.volume=.38;rominaWhisperNext=Date.now()+45000;
+ })
+ .catch(function(){/* Spiel bleibt ohne Namensflüstern vollständig spielbar. */})
+ .finally(function(){rominaWhisperPending=false});
+}
+function maybeRominaWhisper(){
+ if(!rominaWhisperAudio||!S.sound||S.ended||S.locked||document.hidden||
+   S.room==='Start'||S.room==='Startkammer'||ambientBlocked()||
+   Date.now()<rominaWhisperNext||rominaWhisperCount>=5)return;
+ if(Math.random()>.11)return;
+ if(!rominaWhisperAudio.paused)return;
+ rominaWhisperAudio.currentTime=0;
+ rominaWhisperAudio.play().then(function(){rominaWhisperCount++}).catch(function(){});
+ rominaWhisperNext=Date.now()+65000+Math.random()*110000;
+}
+// Rominas acht ORIGINAL-Aufnahmen: zufällig aus wechselnden Richtungen (Kopfhörer empfohlen).
+// Keine neuen Rätsel, keine zusätzlichen API-Aufrufe.
+var rominaPhrases=[
+ "Du bist nicht allein.","Manche Türen sollten verschlossen bleiben.",
+ "Hast du das auch gehört?","Er weiß, dass du da bist.",
+ "Nicht jeder Faden führt nach draußen.","Dreh dich nicht um.",
+ "Sechs warten auf Erlösung. Eine wartet auf dich.",
+ "Vertraue nicht jeder Stimme, die deinen Namen kennt."
+];
+var rominaPhraseAudio=new Audio();
+rominaPhraseAudio.preload='none';
+var rominaPhraseNext=Date.now()+50000;
+var rominaPhraseBag=[],rominaPhraseLast=-1;
+var rominaPhraseContext=null,rominaPhrasePan=null;
+function rominaPhraseBlocked(){
+ return ambientBlocked()||S.room==='Startkammer'||document.hidden||
+  !!document.querySelector('#letterOverlay.on')||
+  (ritualAudio&&!ritualAudio.paused)||
+  (ritualDialogueAudio&&!ritualDialogueAudio.paused)||
+  (rominaWhisperAudio&&!rominaWhisperAudio.paused)||
+  (stageSfx&&!stageSfx.paused);
+}
+function prepareRominaSpatial(){
+ if(rominaPhraseContext)return;
+ try{
+  var C=window.AudioContext||window.webkitAudioContext;
+  if(!C)return;
+  var ctx=new C();
+  if(!ctx.createStereoPanner){ctx.close();return}
+  var src=ctx.createMediaElementSource(rominaPhraseAudio);
+  var pan=ctx.createStereoPanner();
+  src.connect(pan);pan.connect(ctx.destination);
+  rominaPhraseContext=ctx;rominaPhrasePan=pan;
+ }catch(e){console.warn('Raumklang nicht verfügbar:',e)}
+}
+// Der Audiokontext wird erst durch eine echte Spielerinteraktion aktiviert.
+document.addEventListener('pointerdown',function(){
+ prepareRominaSpatial();
+ if(rominaPhraseContext&&rominaPhraseContext.state==='suspended')rominaPhraseContext.resume().catch(function(){});
+},{passive:true});
+function nextRominaPhrase(){
+ if(!rominaPhraseBag.length){
+  rominaPhraseBag=[0,1,2,3,4,5,6,7];
+  for(var j=rominaPhraseBag.length-1;j>0;j--){
+   var k=Math.floor(Math.random()*(j+1)),t=rominaPhraseBag[j];rominaPhraseBag[j]=rominaPhraseBag[k];rominaPhraseBag[k]=t;
+  }
+  if(rominaPhraseBag[rominaPhraseBag.length-1]===rominaPhraseLast){
+   var swap=rominaPhraseBag[0];rominaPhraseBag[0]=rominaPhraseBag[rominaPhraseBag.length-1];rominaPhraseBag[rominaPhraseBag.length-1]=swap;
+  }
+ }
+ return rominaPhraseBag.pop();
+}
+function maybeRominaPhrase(){
+ if(rominaPhraseBlocked()){
+  if(!rominaPhraseAudio.paused){rominaPhraseAudio.pause();rominaPhraseAudio.currentTime=0}
+  return;
+ }
+ if(Date.now()<rominaPhraseNext||!rominaPhraseAudio.paused)return;
+ var i=nextRominaPhrase();rominaPhraseLast=i;
+ rominaPhraseAudio.src='romina-fluestern-'+String(i+1).padStart(2,'0')+'.mp3';
+ // Stark links / links / rechts / stark rechts; nicht immer auf derselben Seite.
+ var pans=[-.92,-.65,.65,.92],pan=pans[Math.floor(Math.random()*pans.length)];
+ if(rominaPhrasePan)rominaPhrasePan.pan.value=pan;
+ // Etwas unterschiedliche Entfernung, aber nie unangenehm laut.
+ rominaPhraseAudio.volume=.32+Math.random()*.15;
+ rominaPhraseAudio.play().catch(function(e){console.warn('Rominas Flüstern:',e)});
+ rominaPhraseNext=Date.now()+55000+Math.random()*85000;
+}
+rominaPhraseAudio.addEventListener('ended',function(){rominaPhraseNext=Math.max(rominaPhraseNext,Date.now()+40000)});
+var timer=null;
+var puzzleOrder=[4,1,6,2,5,3], puzzleTarget=[1,2,3,4,5,6], selected=null;
+
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function has(x){return S.items.indexOf(x)!==-1}
+function add(x){if(!has(x)){S.items.push(x);toast("Gefunden: "+x)}}
+function mark(x){S.flags[x]=true}
+function visited(x){S.visits[x]=(S.visits[x]||0)+1}
+function timePenalty(seconds){return Math.round(seconds*S.penaltyFactor)}
+function fmt(){var m=Math.max(0,Math.floor(S.time/60)),s=Math.max(0,S.time%60);return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")}
+function top(){return '<div class="top"><b>THE LAST ROOM</b><span>'+esc(S.room)+'</span><span class="danger">ZEIT <b id="clockHud">'+fmt()+'</b></span><span>PANIK <b id="panicHud">'+S.panic+'/5</b></span><span class="danger">SANITY <b id="sanityHud">'+S.sanity+'%</b></span><span class="muted">LICHT <b id="lightHud">'+(S.light?'AN':'AUS')+'</b></span><span class="bloodbar">BLUT <b id="bloodHud">'+S.blood+'</b>%</span></div>'}
+function updateHudOnly(){
+ var f=document.getElementById("flashPercent");if(f)f.textContent=S.battery+"%";
+ var c=document.getElementById("clockHud");if(c)c.textContent=fmt();
+ var p=document.getElementById("panicHud");if(p)p.textContent=S.panic+"/5";
+ var s=document.getElementById("sanityHud");if(s)s.textContent=S.sanity+"%";
+ var bh=document.getElementById("bloodHud");if(bh)bh.textContent=S.blood;
+ var l=document.getElementById("lightHud");if(l)l.textContent=S.light?"AN":"AUS";
+ var bt=document.getElementById("blackoutTimer"),bs=document.getElementById("blackoutSeconds");
+ if(bt)bt.classList.toggle("on",S.blackoutRemaining!==null&&!S.ended);
+ if(bs&&S.blackoutRemaining!==null)bs.textContent="00:"+String(Math.max(0,S.blackoutRemaining)).padStart(2,"0");
+}
+function inv(){return S.items.length?S.items.map(x=>'<span class="item">'+esc(x)+'</span>').join(""):'<span class="muted">leer</span>'}
+function toast(t){toastEl.textContent=t;toastEl.classList.add("on");setTimeout(()=>toastEl.classList.remove("on"),1600)}
+// Dezente, zufällige Hausgeräusche. Während Intro/Spieluhr/Schrecksequenzen pausiert.
+var ambienceFiles={door:'sfx-door.mp3',footsteps:'sfx-footsteps.mp3',baby:'sfx-baby.mp3',laugh:'sfx-laugh.mp3',knock:'sfx-knock.mp3',creak:'sfx-creak.mp3',floor:'sfx-floor.mp3',crack:'sfx-crack.mp3',wind:'sfx-wind.mp3'};
+var ambienceAudio=null,ambienceLast=0,ambienceTimer=null,ambienceRoom='';
+var kidsVisitCount=0,kidsSoundTimer=null;
+function playKidsSound(){
+ if(ambientBlocked()||S.room!=='Kinderzimmer')return;
+ // Beim Kinderzimmer-Besuch beide Motive hörbar machen; der zweite Besuch beginnt mit dem anderen.
+ var kind=(kidsVisitCount%2===0)?'baby':'laugh';
+ if(ambienceAudio&&!ambienceAudio.paused){kidsSoundTimer=setTimeout(playKidsSound,4000);return}
+ ambientPlay(kind,kind==='laugh'?.31:.25);
+ kidsVisitCount++;
+}
+function scheduleKidsSound(){
+ if(kidsSoundTimer)clearTimeout(kidsSoundTimer);
+ kidsSoundTimer=setTimeout(playKidsSound,1800);
+}
+
+function ambientBlocked(){return !!endFourDrone||!S.sound||S.locked||S.ended||S.room==='Start'||!!document.querySelector('#introOverlay.on,#musicOverlay.on,#portraitScene.on,#spiderScene.on')}
+function ambientPlay(kind,vol){
+ if(ambientBlocked()||!ambienceFiles[kind])return;
+ if(ambienceAudio&&!ambienceAudio.paused)return;
+ var a=new Audio(ambienceFiles[kind]);a.volume=Math.max(.12,Math.min(.70,(vol||.16)*2.1));
+ ambienceAudio=a;a.play().catch(function(){});
+ a.onended=function(){if(ambienceAudio===a)ambienceAudio=null};
+}
+function ambientOnRoom(room){
+ if(room==='Startkammer'||room==='Start')return;
+ var now=Date.now();if(now-ambienceLast<3500)return;
+ ambienceLast=now;
+ // Nicht jede Tür löst ein Geräusch aus; das Haus soll unberechenbar bleiben.
+ if(Math.random()<.43)ambientPlay('door',.19);
+ else if(Math.random()<.36)ambientPlay('floor',.12);
+}
+function ambientSchedule(){
+ if(ambienceTimer)clearTimeout(ambienceTimer);
+ function tick(){
+  if(!ambientBlocked()&&S.room!=='Startkammer'){
+   var pool=['creak','floor','crack','knock'];
+   if(S.room==='Flur')pool.push('footsteps','footsteps');
+   if(S.room==='Kinderzimmer')pool.push('baby','baby','laugh','laugh','laugh');
+   if(S.room==='Keller')pool.push('wind','creak');
+   if(S.room==='Spiegelsaal')pool.push('laugh','knock');
+   if(S.flags.pictureSolved||S.flags.portraitScareSeen)pool.push('footsteps','footsteps','laugh');
+   var k=pool[Math.floor(Math.random()*pool.length)];
+   if(Math.random()<.78)ambientPlay(k,k==='wind'?.1:k==='laugh'?.3:k==='baby'?.24:.17);
+  }
+  ambienceTimer=setTimeout(tick,12000+Math.random()*16000);
+ }
+ ambienceTimer=setTimeout(tick,9000);
+}
+ambientSchedule();
+function clockTimeLabel(i){var t=S.variant.clockTimes[i];return String(t[0]).padStart(2,"0")+":"+String(t[1]).padStart(2,"0")+" Uhr"}
+function render(title,text,choices,room,grid){
+ if(S.variant&&S.variant.clockTimes)text=text.replace(/PLACE_CLOCK_([0-3])/g,function(_,n){return clockTimeLabel(+n)});
+ var oldRoom=S.room;S.room=room||S.room;if(S.room!=='Bühne'&&ritualDialogueAudio&&!ritualDialogueAudio.paused)stopRitualDialogue();if(S.room!=='Bühne'&&stageEntered){stageEntered=false;stageWhisperPrimed=false;if(stageWhisperTimer){clearTimeout(stageWhisperTimer);stageWhisperTimer=null}if(ritualAudio&&!ritualAudio.paused)ritualAudio.pause()}if(oldRoom!==S.room)ambientOnRoom(S.room);visited(S.room);dark.classList.toggle("on",S.room!=="Startkammer"&&!S.light);
+ if(title!=='EINE VERBORGENE VERBINDUNG' && S.variant && STAGE_ROOMS.indexOf(S.room)!==-1 && stageClueAt(S.room)>=0 && !S.ended){
+  choices=choices.slice();
+  if(S.flags.pictureSolved||stageClueAt(S.room)<4)choices.push(['🔎 Eine unauffällige Spur untersuchen',function(){stageClue(S.room)}]);
+ }
+ var btns=choices.map((c,i)=>'<button data-i="'+i+'" '+(c[2]?'disabled':'')+'>'+c[0]+'</button>').join("");
+ app.innerHTML=top()+'<div class="story"><h2>'+title+'</h2>'+text+'</div><div id="choices" class="'+(grid?'grid':'')+'">'+btns+'<button id="bloodBtn">🩸 Hinweise ('+(S.sacrifices<4?[10,15,20,25][S.sacrifices]+' Blut für neuen Hinweis':'gekaufte Hinweise lesen')+')</button></div>';
+ document.getElementById('bloodBtn').onclick=bloodOffering;
+ document.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{if(!S.ended)choices[+b.dataset.i][1]()});updateHudOnly()
+}
+// Vier unterschiedliche Hinweise pro Durchlauf. Bereits bezahlte Hinweise bleiben kostenlos.
+function availableBloodHints(){
+ var hints=[];
+ if(!S.flags.pictureSolved){
+  hints.push('BILDFRAGMENTE: Schau dir nicht nur die Vorderseiten an. Die Reihenfolge und die Zahlen auf den Motiven sind wichtiger als die Fundorte.');
+  hints.push('DAS PORTRÄT: Ein fehlendes Stück kann an einem Ort liegen, den du schon besucht hast. Untersuche Gegenstände, nicht nur Türen.');
+ }else{
+  hints.push('NACH DEM PORTRÄT: Etwas hat sich verändert. Achte darauf, was jetzt anders klingt und wo sich neue Wege öffnen.');
+  hints.push('DAS HAUS: Was vorher wie Dekoration wirkte, kann jetzt einen Zusammenhang ergeben. Lies alte Aufzeichnungen erneut.');
+ }
+ if(!S.flags.stageWired){
+  hints.push('DIE BÜHNE: Die sechs Kerben gehören zu sechs verschiedenen Anschlüssen. Die Bühne zeigt die Regeln, aber die persönlichen Zuordnungen liegen in anderen Räumen.');
+  hints.push('DIE SPUREN: Jede verborgene Verbindung nennt eine Kerbe und genau ein Gegenstück. Notiere beide zusammen; die Fundstelle selbst ist kein Teil der Lösung.');
+ }else{
+  hints.push('DIE SECHS: Die Leitungen sind verbunden. Der siebte Faden ist eine eigene Entscheidung, keine weitere Verkabelung.');
+  hints.push('DIE STIMMEN: Nicht jeder, der dir eine Entscheidung empfiehlt, kennt dieselbe Wahrheit. Vergleiche Worte mit den gefundenen Beweisen.');
+ }
+ return hints;
+}
+function bloodOffering(){
+ if(S.locked||S.ended)return;
+ if(!Array.isArray(S.paidHints))S.paidHints=[];
+ var hints=availableBloodHints(),next=hints.find(function(h){return S.paidHints.indexOf(h)<0});
+ var costs=[10,15,20,25],cost=costs[S.sacrifices];
+ if(!next||cost===undefined){
+  if(!S.paidHints.length){toast('Zurzeit gibt es keinen weiteren Hinweis.');return}
+  alert('BEREITS BEZAHLTE HINWEISE — KEIN BLUTVERLUST\n\n'+S.paidHints.map(function(h,i){return (i+1)+'. '+h}).join('\n\n'));
+  return;
+ }
+ if(S.blood<cost){toast('Nicht genug Blut. Bereits gekaufte Hinweise bleiben abrufbar.');return}
+ if(!confirm('Einen NEUEN Hinweis für '+cost+' Blut freischalten? Bereits gekaufte Hinweise kosten nichts mehr.'))return;
+ S.blood-=cost;S.sacrifices++;S.paidHints.push(next);loseSanity(3+S.sacrifices*2);
+ if(S.blood<=50)document.body.classList.add('bloodWeak');
+ // Silas spricht nach der Zahlung; erst danach erscheint der eigentliche Hinweis.
+ var hintIndex=Math.min(S.sacrifices,4);
+ function showPaidHint(){alert('SILAS — HINWEIS\n\n'+next+'\n\nBlut: '+S.blood+'/100 · Opfer: '+S.sacrifices+'/4');}
+ if(!S.sound){showPaidHint();}
+ else{
+  var hintVoice=new Audio('silas-hinweis-'+hintIndex+'.mp3');hintVoice.volume=.65;
+  var hintShown=false;
+  function done(){if(hintShown)return;hintShown=true;showPaidHint();}
+  hintVoice.onended=done;hintVoice.onerror=done;
+  hintVoice.play().catch(done);
+ }
+ updateHudOnly();
+}
+
+function startIntro(){
+ music.pause();music.currentTime=0;
+ S.locked=true;
+ var overlay=document.getElementById('introOverlay'),line=document.getElementById('introLine'),audio=document.getElementById('introAudio');
+ overlay.classList.add('on');line.textContent='';
+ // Zeitmarken passend zur aufgenommenen Intro-Stimme (Sekunden ab Audiostart).
+ // Keine unabhängige Text-Uhr: Pausieren und Puffern verschieben den Text nicht.
+ var cues=[
+  [0.0,''],
+  [1.25,'Ahhh...'],
+  [3.44,'Ein neuer Gast.'],
+  [5.44,'Wie schön!'],
+  [7.85,'Ich habe schon lange auf dich gewartet!'],
+  [11.12,'Du glaubst, du bist hier, um zu spielen?'],
+  [15.63,'Nein... Nein... Nein...'],
+  [19.46,'Du bist hier, weil das Haus dich auserwählt hat!'],
+  [24.84,'Hör genau hin...'],
+  [26.59,'Manche Stimmen sagen die Wahrheit.'],
+  [30.40,'Manche führen dich in die Dunkelheit.'],
+  [34.20,'Und manche gehören nicht mehr den Lebenden.'],
+  [40.30,'Und vergiss nicht:'],
+  [42.60,'Die Zeit läuft.'],
+  [44.60,'Das Licht stirbt.'],
+  [46.50,'Und ich sehe alles...'],
+  [50.80,'Willkommen in The Last Room.'],
+  [55.97,'']
+];
+
+ var introMusic=document.getElementById('introMusic'),introNoise=document.getElementById('introNoise');
+ function stopIntroAmbience(){
+  [introMusic,introNoise].forEach(function(a){a.pause();a.currentTime=0});
+ }
+ // Sehr leise Hintergrundkulisse; die Sprache bleibt dominant.
+ function startIntroAmbience(){
+  introMusic.volume=.10;introNoise.volume=.042;
+  introMusic.currentTime=0;introNoise.currentTime=0;
+  introMusic.play().catch(function(){});
+  introNoise.play().catch(function(){});
+ }
+ var done=false,lastCue=-1;
+ function syncText(){
+  if(done)return;
+  var t=audio.currentTime,idx=0;
+  for(var k=0;k<cues.length;k++){if(t>=cues[k][0])idx=k;else break}
+  if(idx!==lastCue){lastCue=idx;line.textContent=cues[idx][1]}
+ }
+ function finish(){
+  if(done)return;done=true;
+  audio.removeEventListener('timeupdate',syncText);
+  audio.removeEventListener('seeked',syncText);
+  audio.removeEventListener('ended',finish);
+  audio.pause();audio.currentTime=0;stopIntroAmbience();
+  overlay.classList.remove('on');S.locked=false;startTimer();startRoom();
+ }
+ audio.addEventListener('timeupdate',syncText);
+ audio.addEventListener('seeked',syncText);
+ audio.addEventListener('ended',finish);
+ document.getElementById('introSkip').onclick=finish;
+ if(!S.sound){finish();return}
+ audio.currentTime=0;audio.volume=.88;syncText();
+ audio.play().then(startIntroAmbience).catch(function(){
+  line.textContent='Audio konnte nicht starten.';
+  document.getElementById('introSkip').textContent='Spiel ohne Intro starten';
+ });
+}
+function wrong(){
+ S.wrong++;S.time=Math.max(0,S.time-timePenalty(75));S.panic=Math.min(5,S.panic+1);loseSanity(4);toast("Falsch — "+timePenalty(75)+" Sekunden verloren.");
+ if(Math.random()<.55)jumpscare();
+}
+function jumpscare(){S.jumps++;scare.classList.add("on");setTimeout(()=>scare.classList.remove("on"),420)}
+function haunt(){
+ if(S.ended)return;
+ var r=Math.random();
+ if(r<.35){jumpscare();S.panic=Math.min(5,S.panic+1)}
+ else if(r<.7){toast(["HINTER DIR.","ICH SEHE DICH.","NICHT ALLEIN.","ZU LANGSAM."][Math.floor(Math.random()*4)])}
+ else{S.battery=Math.max(0,S.battery-8);toast("Die Taschenlampe flackert.")}
+}
+
+
+function stopDaisy(){
+ if(S.locked)return;
+ if(!daisy)return;
+ daisy.pause();daisy.currentTime=0;
+ if(S.sound){music.volume=.0475;music.play().catch(function(){})}
+}
+function playDaisy(){
+ if(!S.sound||!daisy)return;
+ music.volume=.02;
+ daisy.currentTime=0;daisy.volume=.10;daisy.play().catch(function(){});
+}
+function playScareAudio(file,volume){
+ if(!S.sound)return;
+ var a=new Audio(file);a.volume=(volume==null?.55:volume);
+ a.play().catch(function(){});
+}
+function dollJumpscare(force,customSound){
+ if(!force && Math.random()>.28)return;
+ var d=document.getElementById("dollScare");
+ if(!d)return;
+ S.jumps++;d.classList.add("on");
+ if(customSound){playScareAudio(customSound,customSound==='spieluhr-neuer-schrei.mp3'?.26:.65)}else try{
+  var AC=window.AudioContext||window.webkitAudioContext,ac=new AC(),o=ac.createOscillator(),g=ac.createGain();
+  o.type="sawtooth";o.frequency.setValueAtTime(95,ac.currentTime);o.frequency.exponentialRampToValueAtTime(520,ac.currentTime+.18);
+  g.gain.setValueAtTime(.0001,ac.currentTime);g.gain.exponentialRampToValueAtTime(.22,ac.currentTime+.025);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+.42);
+  o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+.45);
+ }catch(e){}
+ setTimeout(function(){d.classList.remove("on")},650);
+}
+
+
+function loseSanity(n){
+ S.sanity=Math.max(0,S.sanity-(n||1));
+ if(S.sanity<=35)document.body.classList.add("sanityLow");else document.body.classList.remove("sanityLow");
+ if(S.sanity===0 && !S.flags.sanityZero){
+   S.flags.sanityZero=true;toast("Du kannst deinen eigenen Gedanken nicht mehr trauen.");S.panic=5;
+   setTimeout(function(){dollJumpscare(true)},600);
+ }
+ updateHudOnly();
+}
+function restoreSanity(amount){
+ var before=S.sanity;
+ S.sanity=Math.min(100,S.sanity+amount);
+ document.body.classList.toggle("sanityLow",S.sanity<=35);
+ updateHudOnly();
+ toast("Sanity +"+(S.sanity-before)+"%");
+}
+function memoryBox(){
+ if(S.flags.memoryUsed)return render("DAS LEERE KÄSTCHEN","Das Foto und der Brief liegen wieder im Kästchen. Die beruhigende Wirkung ist verflogen.",[["⬅ Archiv",archive]],"Archiv");
+ render("DAS KÄSTCHEN","Ein altes, staubiges Kästchen zwischen den Akten. Das Schloss ist nicht eingerastet.",[
+ ["📷 Kästchen öffnen",function(){
+ render("ROMINAS ERINNERUNG","Ein Foto zeigt die junge Romina vor einer kleinen Bühne. Daneben liegt ein Brief ihrer Mutter. Für einen Moment wirkt das Haus weniger bedrohlich.",[
+ ["💭 Einen Moment innehalten (+35 Sanity)",function(){mark("memoryUsed");restoreSanity(35);archive()}],
+ ["⬅ Zurück",archive]],"Archiv")
+ }],
+ ["⬅ Zurück",archive]],"Archiv");
+}
+function cellarElixir(){
+ if(S.flags.elixirUsed)return render("DIE MAUERPLATTE","Hinter der losen Mauerplatte steht nur noch ein leeres Fläschchen.",[["⬅ Keller",basement]],"Keller");
+ render("HINTER DER MAUERPLATTE",'<img src="silas-im-elixier.jpg" alt="Silas’ Gesicht erscheint im Glas des Elixiers" style="display:block;width:min(100%,430px);max-height:54vh;object-fit:contain;margin:0 auto 20px;border:2px solid #654336;border-radius:9px;box-shadow:0 0 25px #190d0b"><p>Eine lockere Platte gibt nach. Dahinter steht ein kleines Fläschchen mit verblichenem Etikett: <em>„Für jene, die Dinge sehen, die nicht da sein sollten.“</em></p><p>Du drehst das Fläschchen ins Licht. Für einen Augenblick blickt Silas aus der Flüssigkeit zurück. Seine Augen folgen dir.</p>',[
+ ["🧪 Beruhigungselixier trinken (+50 Sanity)",function(){mark("elixirUsed");restoreSanity(50);basement()}],
+ ["⬅ Zurück",basement]],"Keller");
+}
+function flashlightFlicker(){
+ if(S.ended||S.room==="Startkammer"||!S.light||S.battery<=0)return;
+ var flashes=S.sanity<40?4:2;
+ var delay=0;
+ for(var i=0;i<flashes;i++){
+   (function(d){
+     setTimeout(function(){dark.classList.add("on")},d);
+     setTimeout(function(){if(S.light)dark.classList.remove("on")},d+120+Math.floor(Math.random()*160));
+   })(delay);
+   delay+=280+Math.floor(Math.random()*220);
+ }
+ if(Math.random()<(S.sanity<40?.38:.16))setTimeout(function(){toast("War da gerade jemand?")},delay);
+}
+function handJumpscare(){
+ var h=document.getElementById("handScare");if(!h)return;
+ S.jumps++;h.classList.add("on");
+ try{
+   var AC=window.AudioContext||window.webkitAudioContext,ac=new AC(),o=ac.createOscillator(),g=ac.createGain();
+   o.type="square";o.frequency.setValueAtTime(72,ac.currentTime);o.frequency.exponentialRampToValueAtTime(620,ac.currentTime+.24);
+   g.gain.setValueAtTime(.0001,ac.currentTime);g.gain.exponentialRampToValueAtTime(.24,ac.currentTime+.025);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+.55);
+   o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+.58);
+ }catch(e){}
+ loseSanity(8);
+ setTimeout(function(){h.classList.remove("on")},900);
+}
+
+function secretFound(label){
+ if(!S.flags["secret_"+label]){S.flags["secret_"+label]=true;S.secrets++;toast("Geheimnis entdeckt.");}
+}
+function creaturePressure(){
+ if(S.ended||S.room==="Startkammer")return;
+ S.creature=Math.min(5,S.creature+1);
+ var c=document.getElementById("creature");
+ if(S.creature>=2 && Math.random()<.6){
+   c.classList.add("peek");
+   setTimeout(function(){c.classList.remove("peek")},650+Math.random()*900);
+ }
+ if(S.creature>=4 && Math.random()<.28){
+   S.battery=Math.max(0,S.battery-12);
+   toast("Etwas berührt deine Taschenlampe.");
+ }
+}
+function fakeCrashThen(cb){
+ var f=document.getElementById("fakeCrash");
+ f.innerHTML='THE LAST ROOM.exe<br><br>FATAL ERROR 0x00000011<br>Session terminated.<br><br><span style="color:#777">Bitte Fenster nicht schließen...</span>';
+ f.classList.add("on");
+ music.pause();
+ setTimeout(function(){
+   f.innerHTML='THE LAST ROOM.exe<br><br><span style="color:#ef2654">NEIN.</span>';
+ },1800);
+ setTimeout(function(){
+   f.classList.remove("on");
+   if(S.sound)music.play().catch(function(){});
+   jumpscare();
+   setTimeout(cb,500);
+ },3100);
+}
+function creatorEnding(title,text){
+ S.ended=true;if(timer)clearInterval(timer);dark.classList.remove("on");
+ var played=Math.max(0,Math.floor((Date.now()-S.startStamp)/1000));
+ var mm=Math.floor(played/60),ss=played%60;
+ app.innerHTML='<div class="kicker">THE LAST ROOM — CREATOR BUILD</div><h1>ENDE</h1>'+
+ '<div class="story center"><h2>'+title+'</h2>'+text+
+ '<div class="statGrid">'+
+ '<div class="stat">SPIELZEIT<b>'+String(mm).padStart(2,"0")+':'+String(ss).padStart(2,"0")+'</b></div>'+
+ '<div class="stat">FEHLVERSUCHE<b>'+S.wrong+'</b></div>'+
+ '<div class="stat">JUMPSCARES<b>'+S.jumps+'</b></div>'+
+ '<div class="stat">GEHEIMNISSE<b>'+S.secrets+'/4</b></div>'+
+ '</div><div class="panel"><strong>ENDING:</strong> '+title+'</div></div>'+
+ '<button class="primary" onclick="location.reload()">NOCHMAL SPIELEN</button>';
+}
+
+var batteryDrainTicks=0;
+function startTimer(){
+ if(timer)return;
+ timer=setInterval(function(){
+  if(S.ended||S.locked||document.hidden)return;
+  S.time--;
+  if(S.room!=="Startkammer"&&S.light&&++batteryDrainTicks>=6.25){
+   batteryDrainTicks-=6.25;
+   S.battery=Math.max(0,S.battery-1);
+   if(S.battery===0){S.light=false;S.blackoutRemaining=30;dark.classList.add("on");toast("Die Batterie ist leer. Du hast 30 Sekunden!")}
+  }
+  if(S.blackoutRemaining!==null&&S.battery===0){
+   S.blackoutRemaining--;
+   if(S.blackoutRemaining<=0){
+    S.blackoutRemaining=0;updateHudOnly();
+    dollJumpscare(true);
+    end("DIE LETZTE DUNKELHEIT","Dreißig Sekunden ohne Licht. Hinter dir öffnet sich der Vorhang. Der Vorhangmann hat dich gefunden.");
+    return;
+   }
+  }
+  if(S.room!=="Startkammer"){
+   if(S.light){
+     if(S.time%8===0)loseSanity(1);
+   }else{
+     if(S.time%3===0)loseSanity(2);
+   }
+   if(S.time%11===0 && Math.random()<(S.sanity<45?.82:.62))flashlightFlicker();
+  }
+  if(S.time%10===0)maybeRominaWhisper();
+  maybeRominaPhrase();
+  if(S.time%95===0&&Math.random()<.5)haunt();if(S.time%70===0)creaturePressure();
+  if(S.time<=0)end("ZEIT ABGELAUFEN","Im Dunkeln öffnet sich eine Tür. Etwas flüstert: <strong>„Jetzt bleibst du.“</strong>");
+  updateHudOnly();
+ },1000)
+}
+function toggleLight(){if(!has("Taschenlampe"))return;if(S.battery<=0){toast("Keine Batterie.");return}S.light=!S.light;dark.classList.toggle("on",S.room!=="Startkammer"&&!S.light);updateHudOnly()}
+function battery(id){
+ if(S.flags["battery_"+id]){toast("Diese Batterie hast du bereits benutzt.");return false}
+ S.flags["battery_"+id]=true;S.battery=100;S.light=true;S.blackoutRemaining=null;dark.classList.remove("on");toast("Neue Batterie eingesetzt — 100%.");updateHudOnly();return true
+}
+function end(title,text){S.ended=true;if(timer)clearInterval(timer);music.pause();dark.classList.remove("on");app.innerHTML='<div class="kicker">THE LAST ROOM — CREATOR BUILD</div><h1>ENDE</h1><div class="story center"><h2>'+title+'</h2>'+text+'</div><button class="primary" onclick="location.reload()">NOCHMAL SPIELEN</button>'}
+function ask(title,body,answers,win,back){
+ app.innerHTML=top()+'<div class="story"><h2>'+title+'</h2><div class="panel">'+body+'</div><input id="answer" autocomplete="off" placeholder="Deine Antwort"><button class="primary" id="check">PRÜFEN</button><button id="back">⬅ Zurück</button></div>';
+ document.getElementById("check").onclick=function(){var a=document.getElementById("answer").value.toLowerCase();
+a=a.replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss");
+a=a.replace(/kreutz/g,"kreuz");
+a=a.replace(/[^a-z0-9]/g,"");
+if(answers.indexOf("__MIRROR_RANDOM__")!==-1){
+ if(a===S.variant.mirrorAnswer)win();else wrong();
+}else if(answers.indexOf("__CLOCK_RANDOM__")!==-1){
+ var correct=S.variant.clockAnswer;
+ if(a===correct||a===correct.replace(/kreuz/g,"kreutz"))win();else wrong();
+}else if(answers.indexOf("__FINAL_RANDOM__")!==-1){
+ if(a===S.variant.finalCode)win();else wrong();
+}else if(answers.includes(a))win();else wrong()};
+ document.getElementById("back").onclick=back;
+ document.getElementById("answer").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("check").click()})
+}
+
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
+function initVariant(){
+ var motifs=shuffle(["Teddy","Standuhr","Akte","Ballons","Rohre","Spiegel"]);
+ var symbols=shuffle(["mond","turm","kreuz","stern"]);
+ var digits=shuffle(["1","2","3","4","5","6","7","8","9"]).slice(0,4);
+ S.variant={fragmentMap:{1:motifs[0],2:motifs[1],3:motifs[2],4:motifs[3],5:motifs[4],6:motifs[5]},
+ clockAnswer:symbols.join(""),clockWords:symbols,
+ // 36 mögliche Zeiten, jeweils in Fünf-Minuten-Schritten; vier einzigartige Zeiten pro Spiel.
+ mirrorDigits:digits,mirrorAnswer:digits.slice().reverse().join(""),doorNumber:Math.floor(Math.random()*3)+1,
+ clockTimes:shuffle([
+  [1,5],[1,20],[1,45],[2,10],[2,35],[2,55],
+  [3,0],[3,25],[3,50],[4,15],[4,40],[4,55],
+  [5,10],[5,30],[5,45],[6,5],[6,25],[6,50],
+  [7,0],[7,20],[7,45],[8,10],[8,35],[8,55],
+  [9,5],[9,30],[9,50],[10,15],[10,40],[10,55],
+  [11,10],[11,25],[11,45],[12,0],[12,20],[12,50]
+ ]).slice(0,4),finalCode:digits.join("")};
+}
+function fragMotif(n){return S.variant.fragmentMap[n]}
+function prettySymbol(s){return {mond:"MOND",turm:"TURM",kreuz:"KREUZ",stern:"STERN"}[s]||s.toUpperCase()}
+
+function menu(){
+ app.innerHTML='<div class="kicker">Creator Build 2.3 — DAS RITUAL</div><h1>THE LAST ROOM</h1>'+
+ '<div class="creatorCard"><div class="warning center"><strong class="danger">KOPFHÖRER EMPFOHLEN · LICHT AUS</strong><br><br>Enthält Flackern, Schreckmomente und psychologischen Horror. Notizen sind erlaubt.</div></div>'+
+ '<div style="max-width:470px;margin:30px auto"><input id="name" placeholder="Dein Name">'+
+ '<label for="difficulty" style="display:block;margin:18px 0 8px">Schwierigkeitsgrad</label>'+
+ '<select id="difficulty" style="width:100%;padding:12px;background:#1c1519;color:#f2e9e5;border:1px solid #87606a;border-radius:7px">'+
+ '<option value="easy">🔦 Einsteiger — 75 Minuten · halbe Zeitstrafen</option>'+
+ '<option value="normal" selected>🕰️ Normal — 60 Minuten · normale Zeitstrafen</option>'+
+ '<option value="hard">💀 Albtraum — 45 Minuten · 1,5-fache Zeitstrafen</option></select>'+
+ '<p id="difficultyDescription" class="muted">60 Minuten. Fehler kosten die normale Zeit.</p>'+
+ '<button class="primary" id="start">ICH BIN BEREIT</button></div>';
+ var d=document.getElementById("difficulty");
+ d.onchange=function(){
+  document.getElementById("difficultyDescription").textContent={
+   easy:"75 Minuten. Fehler kosten nur die Hälfte der Zeit.",
+   normal:"60 Minuten. Fehler kosten die normale Zeit.",
+   hard:"45 Minuten. Fehler kosten 50 % mehr Zeit."
+  }[d.value];
+ };
+ document.getElementById("start").onclick=start;
+}
+function start(){
+ var mode=document.getElementById("difficulty").value;
+ var settings={easy:[4500,.5],normal:[3600,1],hard:[2700,1.5]}[mode];
+ S.difficulty=mode;S.time=settings[0];S.penaltyFactor=settings[1];
+ S.startStamp=Date.now();initVariant();S.ritualDialogueVariant=Math.random()<.5?"romina": "silas";S.ritualDialogueHeard=false;
+ S.name=(document.getElementById("name").value||"Unbekannter").trim();
+ prepareRominaWhisper(S.name);
+ music.pause();music.currentTime=0;startIntro();
+}
+
+
+/* Spinnen-Schreck: einmalig bei der ersten Taschenlampe. */
+function spiderScare(){
+ add("Taschenlampe");
+ if(S.flags.spiderScareSeen){startRoom();return}
+ mark("spiderScareSeen");
+ S.locked=true;
+ var scene=document.getElementById("spiderScene");
+ var intro=document.getElementById("spiderIntro");
+ var spiderVideo=document.getElementById("spiderVideo");
+ spiderVideo.pause();spiderVideo.currentTime=0;spiderVideo.volume=S.sound?.55:0;
+ var stages=[
+  [0,"Du hebst die staubige Taschenlampe auf …"],
+  [1500,"Etwas kitzelt an deinen Fingern."],
+  [2900,"Ein leises Krabbeln …"]
+ ];
+ scene.className="on";
+ intro.textContent=stages[0][1];
+ var jobs=[],finished=false;
+ function later(ms,fn){jobs.push(setTimeout(function(){if(!finished)fn()},ms))}
+ function noiseSound(scary){
+  if(!S.sound)return;
+  try{
+   var AC=window.AudioContext||window.webkitAudioContext,ac=new AC();
+   var len=Math.floor(ac.sampleRate*(scary?.46:1.2)),buffer=ac.createBuffer(1,len,ac.sampleRate),d=buffer.getChannelData(0);
+   for(var i=0;i<len;i++)d[i]=(Math.random()*2-1)*(scary?Math.exp(-i/ac.sampleRate*9):.25*(.5+.5*Math.sin(i*.014)));
+   var src=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();
+   src.buffer=buffer;f.type=scary?"bandpass":"lowpass";f.frequency.value=scary?1200:520;g.gain.value=scary?.16:.07;
+   src.connect(f);f.connect(g);g.connect(ac.destination);src.start();
+   src.onended=function(){ac.close().catch(function(){})};
+  }catch(e){}
+ }
+ function finish(){
+  if(finished)return;finished=true;jobs.forEach(clearTimeout);
+  scene.className="";spiderVideo.pause();spiderVideo.currentTime=0;S.locked=false;
+  startRoom();
+ }
+ later(1500,function(){intro.textContent=stages[1][1];noiseSound(false)});
+ later(2900,function(){intro.textContent=stages[2][1]});
+ later(3900,function(){
+  scene.classList.add("pounce");intro.textContent="";S.jumps++;
+  spiderVideo.currentTime=0;
+  spiderVideo.play().catch(function(){noiseSound(true)});
+ });
+ later(5050,function(){scene.classList.remove("pounce");scene.classList.add("blackout");spiderVideo.pause()});
+ later(6450,function(){scene.classList.remove("blackout");scene.classList.add("question");noiseSound(false)});
+ later(11100,finish);
+}
+
+
+/* Versteckte Fundstücke: Uhrzeiten nur nach aktivem Durchsuchen sichtbar. */
+function desk(){render('DER ALTE SCHREIBTISCH','Die Schublade klemmt. Nach einem Ruck öffnet sie sich. Darin liegen Dutzende vergilbte Papiere, Quittungen und alte Briefe.',[
+ ['📜 Rechnungen durchsehen',()=>render('ALTE RECHNUNGEN','Holz, Draht, Bühnenfarbe. Alles ist auf Romina ausgestellt. Auf einer Rechnung steht: „Silas hat die letzten Lieferungen selbst abgeholt.“',[['⬅ Zu den Papieren',desk]],'Startkammer')],
+ ['🎟️ Altes Showprogramm entfalten',()=>render('DIE ERSTE VORSTELLUNG','Ein vergilbtes Programmheft zeigt Rominas erste öffentliche Vorstellung. Auf der Rückseite steht in verblichener Druckerschwärze: <strong>Beginn: PLACE_CLOCK_0</strong>. Unter dem Datum ist eine kleine Marionette gezeichnet.',[['⬅ Zu den Papieren',desk]],'Startkammer')],
+ ['✉️ Zerknitterten Brief lesen',()=>render('EIN ALTER BRIEF','„Die Puppen sind noch nicht bereit“, schreibt Silas. „Aber wir werden es gemeinsam schaffen.“',[['⬅ Zu den Papieren',desk]],'Startkammer')],
+ ['⬅ Schublade schließen',startRoom]],'Startkammer')}
+function hallBoard(){render('DIE LOSE BODENLEISTE','Zwischen Staub und Splittern steckt ein zusammengefaltetes Bündel. Daneben liegt eine verrostete Haarnadel.',[
+ ['📖 Papierbündel öffnen',()=>render('SILAS’ AUFZEICHNUNGEN','Die meisten Seiten sind voller durchgestrichener Namen und unleserlicher Formeln. Zwischen ihnen steckt eine Seite: <em>„Erste Beschwörung: PLACE_CLOCK_1. Romina hielt die Fäden. Ich sprach die Worte.“</em>',[['⬅ Zur Bodenleiste',hallBoard]],'Flur')],
+ ['🔩 Haarnadel untersuchen',()=>render('VERROSTETE HAARNADEL','Ein dünnes Stück Metall, das schon lange hier liegt. Es gehört zu keiner der Puppen.',[['⬅ Zur Bodenleiste',hallBoard]],'Flur')],
+ ['⬅ Zurück',hall]],'Flur')}
+function archiveDrawers(){render('ARCHIVSCHUBLADEN','Einige Schubladen sind leer. Andere sind bis zum Rand mit beschädigten Akten gefüllt.',[
+ ['📁 Theaterabrechnungen prüfen',()=>render('THEATERABRECHNUNGEN','Sechs Vorstellungen sind abgerechnet. Bei der siebten ist die Spalte für die Einnahmen leer.',[['⬅ Schubladen',archiveDrawers]],'Archiv')],
+ ['🗞️ Polizeiberichte durchblättern',()=>render('POLIZEIBERICHT','Ein Protokoll erwähnt sechs verschwundene Personen. Auf der letzten Seite steht: <em>„Die sechste Vorstellung endete um PLACE_CLOCK_2. Niemand verließ den Saal.“</em>',[['⬅ Schubladen',archiveDrawers]],'Archiv')],
+ ['📷 Fotos betrachten',()=>render('ALTE FOTOS','Romina und Silas stehen lächelnd vor ihrem Theater. Im Hintergrund hängt ein Vorhang, der auf jedem Foto ein Stück weiter geöffnet ist.',[['⬅ Schubladen',archiveDrawers]],'Archiv')],
+ ['⬅ Zurück',archive]],'Archiv')}
+function basementTools(){render('DER WERKZEUGKASTEN','Der Deckel quietscht. Unter Schrauben, Zangen und alten Uhrfedern liegt eine schmale Ledermappe.',[
+ ['⚙️ Uhrfedern untersuchen',()=>render('ZERBROCHENES UHRWERK','Jemand hat die Zeiger der vierten Uhr gewaltsam entfernt. Die Schrauben sind noch frisch.',[['⬅ Werkzeugkasten',basementTools]],'Keller')],
+ ['📓 Ledermappe öffnen',()=>render('LETZTER EINTRAG','Ein abgerissener Wachzettel trägt einen hastigen Vermerk: <em>„PLACE_CLOCK_3 – Romina und Silas zuletzt gesehen. Danach keine Spur.“</em> Darunter wurde ein siebtes Strichmännchen eingeritzt.',[['⬅ Werkzeugkasten',basementTools]],'Keller')],
+ ['⬅ Zurück',basement]],'Keller')}
+
+/* START */
+function startRoom(){stopDaisy();
+ render("DIE STARTKAMMER",
+ 'Eine rote Lampe flackert.<br><br>Auf dem Tisch liegen eine <strong>Taschenlampe</strong>, ein leerer Bilderrahmen und eine Standuhr.<br><br>An der Wand steht ein alter Schreibtisch mit einer schwergängigen Schublade. Hinter dir führt eine Tür in völlige Dunkelheit.',
+ [
+  ...(has("Taschenlampe")?[]:[["🔦 Taschenlampe nehmen",spiderScare]]),
+  ["🕰️ Standuhr ansehen",clockA],
+  ["🗄️ Schreibtisch untersuchen",desk],
+  ["🖼️ Leeren Bilderrahmen untersuchen",()=>{if(S.pieces.indexOf(2)<0)piece(2,fragMotif(2),startRoom);else puzzleBoard()}],
+  ["🚪 In den Flur",hall]
+ ],"Startkammer",true)
+}
+function clockPuzzle(i,back){
+ var names=['DIE ERSTE UHR','DIE ZWEITE UHR','DIE DRITTE UHR','DIE VIERTE UHR'];
+ var stories=[
+  'Rominas erste Vorstellung. Die Zuschauer bewunderten die Puppen. Manche behaupteten, sie hätten sich ohne Fäden bewegt.',
+  'Silas’ erstes Ritual. Er und Romina hatten gemeinsam beschlossen, den Puppen Stimmen zu geben.',
+  'Die sechste Vollendung. Sechs Marionetten, sechs Opfer. Das Publikum verschwand spurlos.',
+  'Die Nacht des Verschwindens. Seit dieser Stunde hat niemand Romina oder Silas gesehen.'
+ ];
+ var solved=!!S.flags['clock'+i],symbol=prettySymbol(S.variant.clockWords[i]);
+ if(!S.flags.pictureSolved&&!solved)return render(names[i],stories[i]+'<br><br>Die Zeiger lassen sich drehen, aber eine unsichtbare Kraft hält das Uhrwerk fest. Hinter dem Glas sind frische Kratzspuren. Vielleicht bewegt sich hier später noch etwas.',[['⬅ Zurück',back]],'Keller');
+ if(solved)return render(names[i],stories[i]+'<br><br>Die Uhr steht still. Unter dem Zifferblatt ist ein Zeichen freigelegt: <strong>'+symbol+'</strong>.', [['⬅ Zurück',back]],['Startkammer','Flur','Archiv','Keller'][i]);
+ var room=['Startkammer','Flur','Archiv','Keller'][i];
+ render(names[i],stories[i]+'<br><br>Die Zeiger lassen sich von Hand verstellen. Irgendwo in diesem Haus ist die Uhrzeit dieser Begebenheit festgehalten.'+
+  '<div class="clockFace" id="clockFace"><div class="hand hour" id="clockHour"></div><div class="hand" id="clockMinute"></div><div class="pin"></div></div>'+
+  '<div class="clockControls"><label>Stunde <select id="clockH"></select></label><label>Minute <select id="clockM"></select></label></div><p id="clockFeedback" class="muted" aria-live="polite"></p>',
+  [['🕰️ Zeiger feststellen',function(){}],['⬅ Zurück',back]],room);
+ var h=document.getElementById('clockH'),m=document.getElementById('clockM');
+ for(var n=1;n<=12;n++)h.add(new Option(String(n).padStart(2,'0'),n));
+ for(var n=0;n<60;n+=5)m.add(new Option(String(n).padStart(2,'0'),n));
+ h.value='12';m.value='0';
+ var face=document.getElementById('clockFace');
+ for(var n=1;n<=12;n++){
+  var label=document.createElement('span');label.className='numeral';label.textContent=n;
+  label.style.left=(50+39*Math.sin(n*Math.PI/6))+'%';label.style.top=(50-39*Math.cos(n*Math.PI/6))+'%';face.appendChild(label);
+ }
+ function update(){var hour=+h.value,minute=+m.value;
+  document.getElementById('clockHour').style.transform='translateX(-50%) rotate('+((hour%12+minute/60)*30)+'deg)';
+  document.getElementById('clockMinute').style.transform='translateX(-50%) rotate('+(minute*6)+'deg)';
+ }
+ h.onchange=update;m.onchange=update;update();
+ document.querySelector('[data-i="0"]').onclick=function(){
+  var target=S.variant.clockTimes[i];
+  if(+h.value===target[0]&&+m.value===target[1]){
+   mark('clock'+i);playClockClick();
+   render(names[i],stories[i]+'<br><br>Die Zeiger rasten ein. Ein verborgenes Zeichen tritt hervor: <strong>'+symbol+'</strong>.<br><br><span class="muted">Merke dir dieses Zeichen und seine Reihenfolge.</span>',[['⬅ Zurück',back]],room);
+  }else{
+   var lost=timePenalty(30);
+   S.time=Math.max(0,S.time-lost);
+   S.wrong++;
+   document.getElementById('clockFeedback').textContent='Die Zeiger zittern und springen zurück. −'+lost+' Sekunden!';
+   toast('Falsche Uhrzeit: −'+lost+' Sekunden');
+   updateHudOnly();
+   if(S.time<=0)end('DER VORHANGMANN','Die letzte Minute ist vergangen. Hinter dir fällt der Vorhang.');
+  }
+ };
+}
+function playClockClick(){if(!S.sound)return;try{var ac=new (window.AudioContext||window.webkitAudioContext)(),o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.value=180;g.gain.setValueAtTime(.08,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.22);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+.23);o.onended=function(){ac.close()}}catch(e){}}
+var letterTimers=[];
+function clockEnding(){
+ if(S.flags.clockSolved)return clockAftermath();
+ mark('clockSolved');add('Uhrensiegel');S.locked=true;
+ var priorVolume=music.volume;music.volume=0;
+ render('DAS LETZTE UHRWERK','Alle vier Zeiger erstarren. Das Ticken verstummt.<br><br><em>Etwas tief unter dem Haus beginnt zu dröhnen.</em>',[], 'Spiegelsaal');
+ var drone=new Audio('uhrwerk-droehnen.wav');drone.volume=.5;
+ if(S.sound)drone.play().catch(function(){});
+ letterTimers.push(setTimeout(function(){music.volume=priorVolume;clockLetter()},6200));
+}
+function clockLetter(){
+ var overlay=document.getElementById('letterOverlay'),text=document.getElementById('letterText'),audio=document.getElementById('letterAudio');
+ var skip=document.getElementById('letterSkip'),cont=document.getElementById('letterContinue');
+ var lines=[
+  [0,'Ich weiß nicht mehr, wann es angefangen hat.'],
+  [3,'Zuerst waren es nur Geräusche. Ein leises Knistern im Flur.'],
+  [8,'Schritte, obwohl niemand dort sein konnte.'],
+  [12,'Silas sagte, das alte Haus würde arbeiten.'],
+  [16,'Ich wollte ihm ja glauben.'],
+  [19,'Doch eines Nachts wachte ich auf, weil ich das Gefühl hatte, beobachtet zu werden.'],
+  [27,'Und am Fuße unseres Bettes stand er.'],
+  [30,'Er war noch nicht fertig. Was machte er hier?'],
+  [35,'Als ich Silas wecken wollte, da war nur noch ein Schatten.']
+ ];
+ var full=lines.map(function(x){return x[1]}).join('\n\n'),finished=false;
+ overlay.classList.add('on');text.textContent='';cont.style.display='none';skip.style.display='inline-block';
+ function sync(){if(finished)return;var now=audio.currentTime,out=[];
+  for(var i=0;i<lines.length;i++)if(now>=lines[i][0])out.push(lines[i][1]);
+  text.textContent=out.join('\n\n');
+ }
+ function reveal(){if(finished)return;finished=true;audio.pause();audio.removeEventListener('timeupdate',sync);audio.removeEventListener('ended',reveal);text.textContent=full+'\n\nDer Rest fehlt.';skip.style.display='none';cont.style.display='inline-block';}
+ skip.onclick=reveal;audio.addEventListener('timeupdate',sync);audio.addEventListener('ended',reveal);audio.addEventListener('error',reveal,{once:true});
+ cont.onclick=function(){reveal();overlay.classList.remove('on');S.locked=false;clockAftermath()};
+ if(!S.sound){reveal();return}
+ audio.currentTime=0;audio.volume=.9;audio.play().catch(reveal);
+}
+function clockAftermath(){
+ render('UNTER ROMINAS BRIEF',
+  'Du hebst den vergilbten Brief an. Darunter liegt eine scharfkantige <strong>Spiegelscherbe</strong>.'+
+  '<div class="note">NICHT JEDES SPIEGELBILD GEHÖRT DEM, DER DAVORSTEHT.</div>'+
+  (has('Spiegelscherbe')?'<p>Du hast die Scherbe bereits an dich genommen.</p>':'<p>Das Glas ist ungewöhnlich kalt.</p>')+
+  '<p>Auf dem Uhrensiegel stehen die Zahlen <strong>4</strong> und <strong>7</strong>.</p>',
+  has('Spiegelscherbe')?[['⬅ Spiegelsaal',mirrorRoom]]:[['🪞 Spiegelscherbe nehmen',function(){add('Spiegelscherbe');mirrorRoom()}],['⬅ Spiegelsaal',mirrorRoom]],'Spiegelsaal');
+}
+function clockA(){clockPuzzle(0,startRoom)}
+
+/* HALL */
+function hall(){stopDaisy();
+ if(!has("Taschenlampe"))return render("DUNKELHEIT","Ohne Licht gehst du hier nicht weiter.",[["⬅ Zurück",startRoom]],"Flur");
+ render("DER FLUR",
+ (S.light?'Dein Lichtkegel reicht nur wenige Meter.':'Du tastest dich an den Wänden entlang. Selbst im Dunkeln findest du die Türen.')+'<br><br>Hinter mehreren Türen liegen weitere Räume: <strong>ARCHIV</strong>, <strong>KINDERZIMMER</strong>, <strong>KELLER</strong>, <strong>SPIEGELSAAL</strong> sowie <strong>SCHLAFZIMMER</strong>, <strong>BADEZIMMER</strong> und die <strong>BÜHNE</strong>.<br><br>An der Decke hängt eine zweite Uhr. In einer Ecke steht ein umgekippter Garderobenschrank. Etwas Papier ragt unter einer losen Bodenleiste hervor.',
+ [
+  ["🔦 Taschenlampe an/aus",()=>{toggleLight();hall()}],
+  ["🕰️ Zur Decke leuchten",clockB],
+  ["🪵 Lose Bodenleiste prüfen",hallBoard],
+  ["📚 Archiv",archive],
+  ["🧸 Kinderzimmer",kids],
+  ["⬇ Keller",basement],
+  ["🚪 Notausgang am Flurende",falseExit],
+  ["🚪 Drei nummerierte Fluchttüren",escapeDoors],
+  ["🪞 Spiegelsaal",mirrorRoom],
+  ["🛏️ Schlafzimmer von Romina und Silas",bedroom],
+  ["🛁 Altes Badezimmer",bathroom],
+  ["🎭 Zur verlassenen Bühne",stageRoom],
+  ["🎧 TEST: Ende IV – Todessprüche",testEndingFour],
+  ["↩️ Zurück in die Startkammer",startRoom]
+ ],"Flur",true)
+}
+
+var endFourAudio=null,endFourDrone=null,endFourMusicVolume=null;
+function silenceForEndFour(){
+ if(endFourMusicVolume===null)endFourMusicVolume=music.volume;
+ music.pause();daisy.pause();
+ var im=document.getElementById('introMusic'),ino=document.getElementById('introNoise');im.pause();ino.pause();
+ var ra=document.getElementById('ritualAudio');ra.pause();
+ if(rominaPhraseAudio)rominaPhraseAudio.pause();
+ if(rominaWhisperAudio)rominaWhisperAudio.pause();
+ if(ambienceAudio){ambienceAudio.pause();ambienceAudio=null;}
+ if(kidsSoundTimer)clearTimeout(kidsSoundTimer);
+ if(endFourDrone){endFourDrone.pause();endFourDrone=null;}
+ endFourDrone=new Audio('uhrwerk-droehnen.wav');endFourDrone.loop=true;endFourDrone.volume=.10;
+ endFourDrone.play().catch(function(){});
+}
+function restoreAfterEndFour(){
+ if(endFourDrone){endFourDrone.pause();endFourDrone.currentTime=0;endFourDrone=null;}
+ if(endFourMusicVolume!==null){music.volume=endFourMusicVolume;endFourMusicVolume=null;
+  if(S.sound&&!S.ended)music.play().catch(function(){});}
+}
+
+var endFourReasons=[
+ 'Bei einer Verfolgungsjagd erwischt',
+ 'Taschenlampe im Versteck eingeschaltet',
+ 'Sanity auf null',
+ 'Dunkelheitstimer abgelaufen',
+ 'Gesamte Spielzeit abgelaufen',
+ 'Während der Jagd nicht versteckt',
+ 'Versteck zu früh verlassen'
+];
+function stopEndFourAudio(){if(endFourAudio){endFourAudio.pause();endFourAudio.onended=null;endFourAudio.currentTime=0;endFourAudio=null;}restoreAfterEndFour();}
+function testEndingFour(){
+ stopEndFourAudio();
+ var choices=endFourReasons.map(function(label,i){return ['💀 '+(i+1)+'. '+label,function(){playEndFourTest(i)}]});
+ choices.push(['⬅ Zurück in den Flur',hall]);
+ render('ENDE IV – AUDIO-TEST','<p>Testmodus: Wähle eine Todesursache. The Puppeteer spricht, anschließend hörst du die drei Stimmen gemeinsam. Dies löst noch keinen tatsächlichen Spieltod aus.</p>',choices,'Flur');
+}
+function playEndFourTest(i){
+ stopEndFourAudio();
+ render('ENDE IV – DAS LETZTE VERSTECK','<p>'+endFourReasons[i]+'</p><p id="endFourStatus">The Puppeteer spricht …</p>',[
+  ['🔁 Noch einmal anhören',function(){playEndFourTest(i)}],
+  ['⬅ Andere Todessprüche',testEndingFour],
+  ['⬅ Zurück in den Flur',function(){stopEndFourAudio();hall()}]
+ ],'Flur');
+ silenceForEndFour();
+ var a=new Audio('puppeteer-tod-'+(i+1)+'.mp3');endFourAudio=a;a.volume=1;
+ a.onended=function(){
+  if(endFourAudio!==a)return;
+  var status=document.getElementById('endFourStatus');if(status)status.textContent='Romina, Silas und The Puppeteer …';
+var chorus=new Audio('ende-iv-drei-stimmen.mp3');chorus.volume=.11;endFourAudio=chorus;
+   chorus.onended=function(){restoreAfterEndFour();var st=document.getElementById('endFourStatus');if(st)st.textContent='ENDE IV – Das letzte Versteck';};
+  chorus.play().catch(function(){toast('Bitte Audio-Wiedergabe im Browser erlauben.')});
+ };
+ a.play().catch(function(){toast('Bitte Audio-Wiedergabe im Browser erlauben.')});
+}
+
+function clockB(){clockPuzzle(1,hall)}
+
+
+function falseExit(){
+ if(!S.flags.falseExit){
+   mark("falseExit");S.time=Math.max(0,S.time-timePenalty(90));S.panic=Math.min(5,S.panic+1);
+   render("NOTAUSGANG",
+    'Die Tür öffnet sich.<br><br>Dahinter liegt ein weißer Flur.<br><br>Du gehst hinein.<br><br>Nach zwölf Schritten stehst du wieder vor derselben Tür.<br><br>Auf der Innenseite steht jetzt:<div class="note">90 SEKUNDEN.</div>',
+    [["⬅ Zurück in den Flur",hall]],"Falscher Ausgang");
+ }else{
+   render("NOTAUSGANG",'Die Tür ist jetzt zugemauert.',[["⬅ Zurück",hall]],"Falscher Ausgang");
+ }
+}
+
+
+
+/* SCHLAFZIMMER & BADEZIMMER — Nebengeschichte und spätere Jagdverstecke */
+var LETTER_WORDS=['PUPPE','WARTETE','NACHTS','VOR','UNSEREM','BETT'];
+var LETTER_SCENES=[
+ 'In einem Briefumschlag steckt ein feuchtes Blatt. Die Tinte ist fast vollständig ausgewaschen.',
+ 'Unter einer Schublade klebt ein eingerissenes Stück Papier.',
+ 'Ein zerknitterter Brief liegt zwischen den Bettlatten.',
+ 'Im Einband eines alten Buches steckt ein verblasster Zettel.',
+ 'Zwischen zwei Bögen Briefpapier ist ein schmaler Streifen verborgen.',
+ 'Am Fuß des Bettes liegt ein fleckiger Briefrest.'
+];
+function letterLayout(){
+ if(!S.variant)return [0,1,2,3,4,5];
+ if(!S.variant.letterLayout)S.variant.letterLayout=shuffle([0,1,2,3,4,5]);
+ return S.variant.letterLayout;
+}
+function bedroom(){
+ var text='<p>Staub liegt auf dem zerwühlten Bett. Davor sind zwei tiefe Kratzspuren im Holz. Ein alter Schreibtisch steht am Fenster; darauf liegen Briefpapier, ein Füller und verwaschene Briefe.</p>'+
+ '<p>Unter der alten Kommode liegt eine staubige Ersatzbatterie.</p><p>Sechs Schriftstücke sind hier verstreut. Manche Wörter sind noch lesbar. Was geschah in der Nacht, als Romina und Silas verschwanden?</p>'+
+ (S.flags.letterSolved?'<div class="note">Die wiederhergestellte Erinnerung liegt offen auf dem Schreibtisch.</div>':'<p class="muted">Auf dem Schreibtisch liegt ein unvollständiger Satz. Du kannst die Fundstücke jederzeit erneut ansehen.</p>');
+ render('DAS SCHLAFZIMMER',text,[
+  ['🖋️ Den alten Schreibtisch untersuchen',bedroomDesk],
+  ['✉️ Verwaschene Briefe durchsuchen',bedroomLetters],
+  ['🛏️ Unter das Bett schauen',bedroomBed],
+  ['🚪 Den Kleiderschrank öffnen',bedroomWardrobe],
+  ['🔋 Ersatzbatterie unter der Kommode',function(){battery('schlafzimmer_kommode');bedroom()},S.flags['battery_schlafzimmer_kommode']],
+  ['⬅ Zurück in den Flur',hall]
+ ],'Schlafzimmer');
+}
+function bedroomLetters(){
+ var order=letterLayout();
+ render('DIE VERWASCHENEN BRIEFE',
+ '<p>Die Briefreste liegen verstreut. Jede Spur lässt sich einzeln untersuchen.</p>',
+ order.map(function(n,i){return ['✉️ Briefrest '+(i+1)+' ansehen',function(){bedroomLetter(i)}]}).concat([['⬅ Zurück ins Schlafzimmer',bedroom]]),
+ 'Schlafzimmer');
+}
+function bedroomLetter(position){
+ var word=LETTER_WORDS[letterLayout()[position]];
+ if(letterLayout()[position]===5&&!S.flags.pictureSolved)return render('EIN BESCHÄDIGTER BRIEFREST','<p>'+LETTER_SCENES[position]+'</p><p>Ein dunkler Faden hält das letzte Wort verdeckt. Er sitzt so fest, als würde ihn jemand von der anderen Seite ziehen.</p>',[['⬅ Zu den Briefen',bedroomLetters]],'Schlafzimmer');
+ render('BRIEFREST '+(position+1),
+ '<p>'+LETTER_SCENES[position]+'</p><div class="note">… '+word+' …</div><p>Die übrigen Buchstaben sind vom Wasser fortgespült.</p>',
+ [['⬅ Zu den Briefen',bedroomLetters],['🖋️ Zum Schreibtisch',bedroomDesk]],'Schlafzimmer');
+}
+function bedroomDesk(){
+ if(S.flags.letterSolved)return render('DIE WIEDERGEFUNDENE ERINNERUNG',
+ '<p>Der Satz steht wieder auf dem Papier: <strong>„PUPPE WARTETE NACHTS VOR UNSEREM BETT.“</strong></p>'+
+ '<p>Darunter hat Silas geschrieben: „Ich wachte auf, weil Holz über den Boden schabte. Sie stand am Fußende. Romina hielt meine Hand fest. Wir hatten sie am Abend noch im verschlossenen Arbeitszimmer gesehen. Am Morgen waren die Fäden über der Tür gespannt. Wir beschlossen, ihn im Porträt zu halten – so lange wir konnten.“</p>'+
+ '<p>Eine andere Handschrift ergänzt: „Wir haben uns gegenseitig versprochen, niemandem zu sagen, wer den letzten Knoten band.“</p>'+
+ '<div class="note">Die Erinnerung hat dir einmalig drei Minuten und neue Kraft geschenkt.</div>',
+ [['⬅ Zurück',bedroom]],'Schlafzimmer');
+ render('DER SCHREIBTISCH',
+ '<p>Der Füller ist eingetrocknet. Auf dem Briefpapier stehen nur noch Satzzeichen. Daneben hat Silas eine Notiz hinterlassen:</p>'+
+ '<div class="note">WER war es? WAS geschah? WANN? WO? Vor WESSEN Bett?</div>'+
+ '<p>Sechs lesbare Wörter sind im Schlafzimmer verstreut. Schreibe den vollständigen Satz in das Papier. Die Wörter müssen in der richtigen Reihenfolge stehen.</p>'+
+ '<label for="letterAnswer">Der wiederhergestellte Satz:</label><input id="letterAnswer" autocomplete="off" placeholder="...">'+
+ '<p class="muted">Leerzeichen und Satzzeichen sind erlaubt.</p>',
+ [['🖋️ Den Satz vervollständigen',checkBedroomLetter],['✉️ Briefe erneut ansehen',bedroomLetters],['⬅ Zurück',bedroom]],'Schlafzimmer');
+}
+function checkBedroomLetter(){
+ var el=document.getElementById('letterAnswer');
+ if(!el)return bedroomDesk();
+ var norm=function(v){return v.toUpperCase().replace(/Ä/g,'AE').replace(/Ö/g,'OE').replace(/Ü/g,'UE').replace(/ß/g,'SS').replace(/[^A-Z ]/g,'').replace(/\s+/g,' ').trim()};
+ if(!S.flags.pictureSolved){toast('Ein Wort der Erinnerung liegt noch im Dunkeln.');return bedroomDesk()}
+ if(norm(el.value)!==norm(LETTER_WORDS.join(' '))){
+  toast('Die Wörter ergeben noch keine Erinnerung.');
+  return bedroomDesk();
+ }
+ if(!S.flags.letterSolved){
+  mark('letterSolved');
+  S.time+=180;
+  restoreSanity(50);
+  toast('Erinnerung gefunden: +03:00 Zeit und +50 Sanity (max. 100).');
+ }
+ bedroomDesk();
+}
+function bedroomBed(){
+ render('UNTER DEM BETT',
+ '<p>Der Boden ist mit Holzspänen übersät. Zwischen ihnen liegen alte Schleifspuren, die bis zur Tür reichen.</p>'+
+ '<p>Du könntest dich hier vor etwas verstecken. Noch ist es still.</p>',
+ [['⬅ Zurück',bedroom]],'Schlafzimmer');
+}
+function bedroomWardrobe(){
+ render('DER KLEIDERSCHRANK',
+ '<p>Hinter den schweren Mänteln ist Platz für einen Menschen. Von innen lässt sich die Tür fast lautlos schließen.</p>'+
+ '<p>Ein mögliches Versteck – wenn du die Taschenlampe ausschaltest.</p>',
+ [['⬅ Zurück',bedroom]],'Schlafzimmer');
+}
+function bathroom(){
+ render('DAS BADEZIMMER',
+ '<p>Die Fliesen sind kalt. In einer alten Badewanne steht dunkles, unbewegtes Wasser. Ein schwerer Vorhang hängt bis zum Boden.</p>'+
+ '<p>Aus dem Wasserhahn fällt ein einzelner Tropfen. Danach ist es wieder still.</p>',
+ [['🛁 Die Badewanne untersuchen',bathTub],
+  ['🧺 Den Wäscheschrank öffnen',bathLinen],
+  ['🪞 Den beschlagenen Spiegel betrachten',bathMirror],
+  ['⬅ Zurück in den Flur',hall]],'Badezimmer');
+}
+function bathTub(){
+ render('DIE BADEWANNE',
+ '<p>Hinter dem Vorhang ist genug Platz, um sich tief in die Wanne zu ducken. Der Stoff lässt kaum Licht hindurch.</p>'+
+ '<p>Ein geeignetes Versteck – sofern deine Taschenlampe aus ist.</p>',
+ [['⬅ Zurück',bathroom]],'Badezimmer');
+}
+function bathLinen(){
+ render('DER WÄSCHESCHRANK',
+ '<p>Zwischen muffigen Laken ist eine schmale Nische. Sie ist gerade groß genug, um sich hineinzuzwängen.</p>',
+ [['⬅ Zurück',bathroom]],'Badezimmer');
+}
+function bathMirror(){
+ render('DER BADEZIMMERSPIEGEL',
+ '<p>Im beschlagenen Glas steht eine alte Spur: „Er übte unsere Bewegungen, bevor er unsere Stimmen kannte.“</p>',
+ [['⬅ Zurück',bathroom]],'Badezimmer');
+}
+
+/* BÜHNE: verteilte Hinweise, pro Durchlauf neue Zuordnung und Positionen. */
+var STAGE_PUPPETS=['KERBE I','KERBE II','KERBE III','KERBE IV','KERBE V','KERBE VI'];
+var STAGE_MARKS=['AUGE','MUND','TRÄNE','MASKE','UHR','FADEN'];
+var STAGE_ROOMS=['Startkammer','Flur','Archiv','Kinderzimmer','Keller','Spiegelsaal'];
+var STAGE_CLUE_TEXT=[
+ 'Auf der Rückseite eines Holzstücks sind zwei Zeichen übereinander eingeritzt.',
+ 'Zwischen zwei Seiten wurde ein Stück Draht mit einer winzigen Gravur verborgen.',
+ 'Unter altem Staub schimmert eine eingeritzte Verbindung.',
+ 'Eine abgerissene Etikette trägt zwei kaum lesbare Zeichen.',
+ 'Auf einer dunklen Metallplatte liegt eine eingeritzte Spur.',
+ 'Im Holz steckt ein dünnes Stück Papier mit zwei Symbolen.'
+];
+function ensureStageVariant(){
+ if(!S.variant)return;
+ if(!S.variant.stageMap)S.variant.stageMap=shuffle(STAGE_MARKS);
+ if(!S.variant.stageLocations)S.variant.stageLocations=shuffle(STAGE_ROOMS);
+ if(!S.variant.stageOrder)S.variant.stageOrder=shuffle([0,1,2,3,4,5]);
+}
+function stageClueAt(room){
+ ensureStageVariant();
+ if(!S.variant)return -1;
+ return S.variant.stageLocations.indexOf(room);
+}
+function stageClue(room){
+ var i=stageClueAt(room);
+ if(i<0)return;
+ if(i>=4&&!S.flags.pictureSolved){toast('Hier scheint etwas zu fehlen.');return}
+ render('EINE VERBORGENE VERBINDUNG',
+ '<p>'+STAGE_CLUE_TEXT[i]+'</p><div class="note">Auf der Rückseite: '+STAGE_PUPPETS[i]+'<br>Auf der Kontaktlasche: '+S.variant.stageMap[i]+'</div><p>Beide Markierungen gehören zusammen. Beim nächsten Spieldurchlauf können die Fundorte und Verbindungen anders sein.</p>',
+ [['⬅ Zurück',function(){if(room==='Startkammer')startRoom();else if(room==='Flur')hall();else if(room==='Archiv')archive();else if(room==='Kinderzimmer')kids();else if(room==='Keller')basement();else mirrorRoom()}]],room);
+}
+var stageSfx=null,stageSounds={wrong:new Audio('puppen-schreien.mp3'),right:new Audio('puppen-lachen.mp3')},ritualAudio=null,stageWhisperTimer=null,stageEntered=false,stageWhisperPrimed=false;
+function stageAudio(kind){
+ if(!S.sound)return;
+ try{
+  if(stageSfx){stageSfx.pause();stageSfx.currentTime=0}
+  stageSfx=stageSounds[kind==='wrong'?'wrong':'right'];stageSfx.pause();stageSfx.currentTime=0;
+  stageSfx.volume=(kind==='wrong'?.34:.60);stageSfx.play().catch(function(e){console.warn('Puppengeräusch:',e);toast('Puppenton blockiert – Ton aktivieren.');});
+ }catch(e){console.warn('Puppengeräusch:',e)}
+}
+function stageWhisper(){
+ if(!S.sound){toast('Ton ist deaktiviert.');return}
+ try{
+  if(!ritualAudio){
+   ritualAudio=document.getElementById('ritualAudio');
+   ritualAudio.addEventListener('error',function(){toast('Ritualaufnahme konnte nicht geladen werden. Prüfe romina-ritualfluestern.mp3.');});
+  }
+  ritualAudio.pause();ritualAudio.currentTime=0;ritualAudio.muted=false;ritualAudio.volume=1;
+  var previousMusic=music.volume;music.volume=0.015;
+  ritualAudio.onended=function(){music.volume=previousMusic};
+  ritualAudio.play().then(function(){toast('Rominas Ritualflüstern …')}).catch(function(e){
+   music.volume=previousMusic;console.warn('Ritualflüstern:',e);
+   toast('Automatischer Ton blockiert: Bitte „Ritualtext anhören“ drücken.');
+  });
+ }catch(e){console.warn(e);toast('Ritualaufnahme konnte nicht abgespielt werden.')}
+}
+function stageRoom(){
+ if(!stageEntered){
+  stageEntered=true;
+  if(stageWhisperTimer)clearTimeout(stageWhisperTimer);
+  // Der Klick auf „Zur Bühne“ gibt dem Browser eine Nutzeraktion.
+  // Ton schon hier stumm starten; nach fünf Sekunden hörbar ab Anfang spielen.
+  try{
+   ritualAudio=ritualAudio||document.getElementById('ritualAudio');
+   if(S.sound&&ritualAudio){
+    ritualAudio.pause();ritualAudio.currentTime=0;ritualAudio.muted=true;
+    stageWhisperPrimed=true;
+    var start=ritualAudio.play();
+    if(start&&start.catch)start.catch(function(e){stageWhisperPrimed=false;console.warn('Ritual vorbereiten:',e)});
+   }
+  }catch(e){stageWhisperPrimed=false;console.warn(e)}
+  stageWhisperTimer=setTimeout(function(){
+   stageWhisperTimer=null;
+   if(stageEntered&&S.room==='Bühne'&&!S.ended){
+    if(stageWhisperPrimed&&ritualAudio&&!ritualAudio.paused){
+     ritualAudio.currentTime=0;
+     ritualAudio.volume=1;
+     var previousMusic=music.volume;music.volume=0.015;
+     ritualAudio.onended=function(){music.volume=previousMusic};
+     ritualAudio.muted=false;
+     toast('Rominas Ritualflüstern …');
+    }else stageWhisper();
+   }
+  },5000);
+ }
+ S.room='Bühne';ensureStageVariant();
+ var solved=!!S.flags.stageWired;
+ render('DIE BÜHNE — SECHS MARIONETTEN',
+ '<p>Ein schwerer Vorhang trennt die Bühne vom Rest des Hauses. Sechs Marionetten tragen nur eingeritzte Kerben. Ihre Buchsen sind mit anderen Zeichen versehen. Der siebte Platz ist leer.</p>'+
+ '<div class="note">WAS KEINEN BLICK HAT, BRAUCHT EIN AUGE.<br>WAS KEINEN MUND HAT, BRAUCHT EINE STIMME.<br>WAS NICHT WEINEN KANN, BRAUCHT EINE TRÄNE.<br>WAS NICHT LACHEN KANN, BRAUCHT EINE MASKE.<br>WAS NIEMALS GEHT, BRAUCHT EINE UHR.<br>WAS NICHT GEHALTEN WIRD, BRAUCHT EINEN FADEN.</div>'+
+ '<p>An der Wand steht: <em>„Jede erhält, was ihr fehlt.“</em> Die übrigen Spuren liegen nicht hier.</p>'+
+ (solved?'<p>Alle sechs Leitungen sitzen fest. Hinter dem Vorhang hängt ein weiterer Faden.</p>':'<p>Die Leitungen sind noch offen.</p>'),
+ (solved?[['🎙️ Rominas Ritualtext anhören',stageWhisper],['🪡 Den siebten Faden untersuchen',stageSeventh],['⬅ Zurück in den Flur',hall]]:
+ [['🎙️ Rominas Ritualtext anhören',stageWhisper],['🧵 Die sechs Leitungen verbinden',stageWiring],['⬅ Zurück in den Flur',hall]]),'Bühne');
+}
+function stageWiring(){
+ S.room='Bühne';ensureStageVariant();
+ if(S.flags.stageWired)return stageRoom();
+ if(!S.flags.pictureSolved)return render('DIE UNVOLLSTÄNDIGEN LEITUNGEN','<p>Einige Kontakte fehlen. An den losen Enden hängen Fäden, die unter der Wand verschwinden.</p><p>Die sechs Marionetten sind zu erkennen, doch noch lässt sich der Stromkreis nicht schließen.</p>',[['⬅ Zur Bühne',stageRoom]],'Bühne');
+ // Richtig geprüfte Puppen bleiben innerhalb dieses Durchlaufs verbunden.
+ if(!S.stageConnections)S.stageConnections={};
+ var order=S.variant.stageOrder;
+ var html=top()+'<div class="story"><h2>DIE SECHS LEITUNGEN</h2><p>Prüfe jede Marionette einzeln. Richtig verbundene Puppen bleiben fest verkabelt.</p>';
+ order.forEach(function(idx,n){
+  var fixed=!!S.stageConnections[idx];
+  html+='<div style="margin:12px 0;padding:12px;border:1px solid #75505a;border-radius:8px"><strong>'+esc(STAGE_PUPPETS[idx])+'</strong>'+
+   '<label style="display:block;margin:8px 0"><select id="wire'+n+'" '+(fixed?'disabled':'')+' style="display:block;width:100%;padding:11px;background:#181217;color:#f0e1dc;border:1px solid #75505a"><option value="">— Buchse auswählen —</option>'+
+   STAGE_MARKS.map(function(mark){return '<option value="'+mark+'" '+(fixed&&mark===S.variant.stageMap[idx]?'selected':'')+'>'+mark+'</option>'}).join('')+'</select></label>'+
+   '<button id="wireCheck'+n+'" '+(fixed?'disabled':'')+'>'+(fixed?'✓ Fest verbunden':'Verbindung prüfen')+'</button> <span id="wireResult'+n+'" aria-live="polite" style="font-weight:bold;color:'+(fixed?'#9fdb9f':'#f0e1dc')+'">'+(fixed?'Richtig ✓':'Noch nicht geprüft')+'</span></div>';
+ });
+ html+='<button id="wireBack">⬅ Zur Bühne</button></div>';
+ app.innerHTML=html;
+ document.getElementById('wireBack').onclick=stageRoom;
+ order.forEach(function(idx,n){
+  if(S.stageConnections[idx])return;
+  document.getElementById('wireCheck'+n).onclick=function(){
+   var select=document.getElementById('wire'+n), result=document.getElementById('wireResult'+n),val=select.value;
+   if(!val){result.textContent='Bitte eine Buchse wählen';result.style.color='#f0c580';return}
+   if(val!==S.variant.stageMap[idx]){
+    S.wrong++;S.panic=Math.min(5,S.panic+1);S.time=Math.max(0,S.time-timePenalty(20));
+    result.textContent='Falsch ✗ – die Puppe schreit!';result.style.color='#ff9292';stageAudio('wrong');return;
+   }
+   S.stageConnections[idx]=true;select.disabled=true;
+   document.getElementById('wireCheck'+n).disabled=true;
+   document.getElementById('wireCheck'+n).textContent='✓ Fest verbunden';
+   result.textContent='Richtig ✓ – die Puppe lacht!';result.style.color='#9fdb9f';stageAudio('right');
+   if(Object.keys(S.stageConnections).filter(function(k){return S.stageConnections[k]}).length===6){
+    mark('stageWired');
+    // Kurze Verzögerung: auch die letzte Puppe kann ihre Rückmeldung geben.
+    setTimeout(function(){render('DAS LACHEN HINTER DEM VORHANG','Alle sechs Puppen heben ihre Köpfe. Hinter dem Vorhang fällt ein siebter Faden herab.',[['🔊 Lachen erneut anhören',function(){stageAudio('right')}],['🪡 Zum siebten Faden',stageSeventh],['⬅ Bühne',stageRoom]],'Bühne')},1200);
+   }
+  };
+ });
+}
+var ritualDialogueAudio=null;
+function stopRitualDialogue(){
+ if(ritualDialogueAudio){ritualDialogueAudio.pause();ritualDialogueAudio.currentTime=0;}
+}
+function stageSeventh(){
+ S.room='Bühne';if(!S.flags.stageWired)return stageRoom();
+ if(!S.ritualDialogueVariant)S.ritualDialogueVariant=Math.random()<.5?'romina':'silas';
+ if(!S.ritualDialogueHeard){
+  var file=S.ritualDialogueVariant==='romina'?'ritual-romina-ehrlich-silas-luegt.mp3':'ritual-silas-ehrlich-romina-luegt.mp3';
+  stopRitualDialogue();
+  ritualDialogueAudio=new Audio(file);ritualDialogueAudio.preload='auto';ritualDialogueAudio.volume=.83;
+  if(ritualAudio&&!ritualAudio.paused)ritualAudio.pause();
+  if(rominaPhraseAudio&&!rominaPhraseAudio.paused)rominaPhraseAudio.pause();
+  var previousMusic=music.volume;music.volume=Math.min(previousMusic,.10);
+  function complete(){S.ritualDialogueHeard=true;music.volume=previousMusic;stageSeventh();}
+  ritualDialogueAudio.onended=complete;
+  ritualDialogueAudio.onerror=function(){toast('Ritualgespräch konnte nicht geladen werden.');complete()};
+  render('ZWEI STIMMEN IM DUNKELN',
+   '<p>Die sechs Marionetten sind verbunden. Der siebte Faden senkt sich herab. Plötzlich beginnen Romina und Silas zu sprechen …</p><p>Höre zu, bevor du dich entscheidest.</p>',
+   [['▶ Gespräch anhören',function(){ritualDialogueAudio.play().catch(function(){toast('Audio blockiert – bitte erneut starten.')})}],
+    ['⏭ Gespräch überspringen',function(){stopRitualDialogue();complete()}],
+    ['⬅ Zurück zur Bühne',function(){stopRitualDialogue();music.volume=previousMusic;stageRoom()}]],'Bühne');
+  ritualDialogueAudio.play().catch(function(){toast('Bitte „Gespräch anhören“ drücken.')});
+  return;
+ }
+ render('DER SIEBTE FADEN',
+ '<p>Die sechs Marionetten sind verbunden. Eine einzelne Schnur hängt über deinem Kopf.</p><p>Romina und Silas widersprechen sich. Wem glaubst du?</p><div class="note">SECHS KÖRPER. EIN SIEBTER PLATZ.<br>WER DEN FADEN TRÄGT, GEHÖRT ZUR VORSTELLUNG.</div><p>Der Faden ist kalt.</p>',
+ [['🎙️ Gespräch erneut anhören',function(){S.ritualDialogueHeard=false;stageSeventh()}],
+ ['🪡 Den siebten Faden an mir befestigen',function(){end('DIE SIEBTE MARIONETTE','<p>Der Knoten zieht sich von selbst fest. Deine Finger bewegen sich, ohne dass du es willst.</p><p>Über dir lacht etwas hinter dem Vorhang. Dein letzter eigener Gedanke verstummt.</p><h3>ENDE — DIE SIEBTE MARIONETTE</h3>')}],
+ ['✋ Den Faden nicht berühren',stageRoom],['⬅ Zurück in den Flur',hall]],'Bühne');
+}
+
+/* ARCHIVE */
+function archive(){stopDaisy();
+ render("DAS ARCHIV",
+ 'Metallregale voller Akten. Ein vergilbter Bericht nennt Romina und Silas Voss: Beide führten die Rituale gemeinsam durch. Seit der siebten Vorstellung sind sie verschwunden. Eine Schublade enthält eine Batterie.<br><br>Eine dritte Uhr ist in einen Aktenschrank eingelassen. Die Beschriftungen der Archivschubladen sind kaum noch zu lesen.<br><br>Auf dem Boden liegt ein Stück eines zerrissenen Fotos.',
+ [
+  ["🔋 Batterie nehmen",()=>{battery("archiv");archive()},S.flags["battery_archiv"]],
+  ["🗄️ Aktenschrank untersuchen",clockC],
+  ["📦 Verstaubtes Kästchen zwischen den Akten",memoryBox],
+  ["🗃️ Alte Archivschubladen durchsuchen",archiveDrawers],
+  ["🧩 Fragment neben Akte 47 nehmen",()=>piece(3,fragMotif(3),archive)],
+  ["📁 Akte 47 öffnen",archiveFile],
+  ["📼 Alten Tonbandapparat untersuchen",archiveTape],
+  
+  ["⬅ Flur",hall]
+ ],"Archiv",true)
+}
+function clockC(){secretFound("wax");clockPuzzle(2,archive)}
+
+function archiveFile(){
+ if(S.flags.archive47Open)return archive47Contents();
+ if(!S.flags.mirrorPhotoKey && !has("Kleiner Aktenschlüssel"))
+  return render("AKTE 47",
+   "Die alte Akte ist fest verschlossen. Im Einband steckt ein winziges Schlüsselloch. Es passt zu keinem gewöhnlichen Schlüssel.",
+   [["⬅ Zurück",archive]],"Archiv");
+ mark("archive47Open");
+ archive47Contents();
+}
+function mirrorPhotoReveal(){
+ mark("mirrorPhotoDropped");
+ render("ETWAS FÄLLT AUS DEM SPIEGEL",
+ '<p>Ein trockenes Rascheln. Hinter dem schwarzen Spiegel löst sich ein vergilbtes Foto und fällt auf den Boden.</p>'+
+ '<img src="romina-puppenwerkstatt.jpg" alt="Altes Foto: Romina fertigt eine Puppe in ihrer Werkstatt, Silas steht im Hintergrund." style="display:block;width:100%;max-width:680px;margin:16px auto;border:4px solid #594239;box-shadow:0 8px 30px #000">'+
+ '<p>Auf dem Foto näht Romina einer Puppe ein Gesicht. Silas beobachtet sie aus dem Schatten.</p>',
+ [["🖼️ Das alte Foto anheben",mirrorPhotoBack],["⬅ Zurück zum Spiegel",blackMirror]],"Spiegelsaal");
+}
+function mirrorPhotoBack(){
+ if(S.flags.mirrorPhotoKey)return render("DIE RÜCKSEITE DES FOTOS","Die Rückseite ist eingerissen. Das kleine Schlüsselfach ist leer.",[["⬅ Zurück",blackMirror]],"Spiegelsaal");
+ render("DIE RÜCKSEITE DES FOTOS",
+ "Auf der Rückseite wölbt sich das Papier an einer Stelle. Darunter scheint etwas Hartes zu stecken.",
+ [["🔎 Vorsichtig das Papier lösen",function(){
+  mark("mirrorPhotoKey");add("Kleiner Aktenschlüssel");
+  render("DER KLEINE SCHLÜSSEL","Ein winziger, dunkler Schlüssel fällt aus dem Foto. Seine Form passt zu dem kleinen Schloss an Akte 47 im Archiv.",
+   [["📁 Zum Archiv",archive],["⬅ Zum Spiegel",blackMirror]],"Spiegelsaal");
+ }],["⬅ Zurück",mirrorPhotoReveal]],"Spiegelsaal");
+}
+function mirrorPoemSolve(){
+ if(S.flags.mirrorPhotoDropped)return mirrorPhotoReveal();
+ ask("DAS GEDICHT ENTSCHLÜSSELN",
+ "Was ist das erste Wort des verständlichen Gedichts? Du kannst es selbst herausfinden oder im Archiv für 10 Blut entschlüsseln.",
+ ["asche"],mirrorPhotoReveal,blackMirror);
+}
+function archive47Contents(){
+ mark("archiveOpen");
+ render("AKTE 47 — DAS ERSTE RITUAL",
+  '<div class="note"><strong>AUFZEICHNUNG — DAS ERSTE RITUAL</strong><br><br>'+
+  'Romina fertigte die erste Puppe in ihrer Werkstatt. Sie wählte das Holz, nähte das Kleid und formte das Gesicht. '+
+  'Silas bereitete den Kreis aus Kreide und Wachs vor und sprach die verbotenen Worte. '+
+  'Beide wussten, dass sie keine gewöhnliche Marionette erschufen. '+
+  'Als sich ihre Finger ohne Fäden bewegten, glaubten sie, gewonnen zu haben. '+
+  'Doch in derselben Nacht hörten sie eine fremde Stimme hinter der Bühnenwand. '+
+  'Die erste Puppe hatte zu atmen begonnen.<br><br><em>Romina und Silas — gemeinsam unterzeichnet</em></div>'+
+  (S.flags.loopKeyTaken
+    ? '<p>Das kleine Schlüsselfach ist leer. Die Aufzeichnungen über das erste Ritual bleiben hier.</p>'
+    : '<p>Zwischen den letzten Seiten steckt ein alter <strong>Schlüssel mit der Zahl I</strong>. Eine Randnotiz lautet: <em>„Die erste Tür führt immer zum Anfang.“</em></p>'),
+  [
+   ["🗝️ Schlüssel I aus Akte 47 nehmen",function(){
+      if(!S.flags.loopKeyTaken){mark("loopKeyTaken");add("Schlüssel I")}
+      render("SCHLÜSSEL I","Ein schwerer Schlüssel mit der römischen Ziffer I. Auf dem Griff steht: <em>„Im Loop gefangen“</em>.",
+       [["🚪 Zu den drei Türen",function(){S.room="Flur";escapeDoors()}],["⬅ Zur Akte",archive47Contents]],"Archiv");
+    },!!S.flags.loopKeyTaken],
+   ["🚪 Zu den drei Fluchttüren",function(){S.room="Flur";escapeDoors()}],
+   ["⬅ Archiv",archive]
+  ],"Archiv");
+}
+
+/* KIDS */
+function kids(){
+ scheduleKidsSound();
+ render("DAS KINDERZIMMER",
+ 'Verblasste Tapete. Ein leeres Bett. An der Wand steht in Rominas Schrift: „Ich gab ihnen Gesichter. Silas gab ihnen Stimmen. Wir wussten, was wir taten.“ Drei Bilder hängen schief.<br><br>Unter dem Bett glitzert etwas.<br><br>Eine Spieluhr spielt vier Töne in Endlosschleife.',
+ [
+  ["🧸 Teddy unter dem Bett ansehen",()=>piece(1,fragMotif(1),kids)],
+  ["🖼️ Die drei Bilder ansehen",kidsPictures],
+  ["🔍 Spieluhrgehäuse genauer betrachten",musicBoxClue],
+  ["🎵 Spieluhr untersuchen",musicBox],
+  ["🔋 Batterie aus dem Schrank nehmen",()=>{battery("kinderzimmer");kids()},S.flags["battery_kinderzimmer"]],
+  ["⬅ Flur",hall]
+ ],"Kinderzimmer",true)
+}
+function kidsPictures(){
+ secretFound("portrait");var d=S.variant.mirrorDigits;
+ render("DIE DREI BILDER",
+ 'Bild 1 zeigt ein Haus mit <strong>'+d[0]+'</strong> beleuchteten Fenstern.<br><br>Bild 2 zeigt zwei Menschen vor <strong>'+d[1]+'</strong> Kerzen.<br><br>Bild 3 zeigt ein Kind mit <strong>'+d[2]+'</strong> Ballons.<br><br>Hinter dem dritten Rahmen löst sich die Tapete.',
+ [["🧩 Fragment hinter Bild 3 nehmen",()=>piece(4,fragMotif(4),kids)],["⬅ Zurück",kids]],"Kinderzimmer");
+}
+function musicBoxClue(){
+ render("DAS GEHÄUSE DER SPIELUHR",
+ 'Das Holz ist an einer Stelle aufgeraut. Unter einer Schicht abgeplatzten Lacks sind <strong>'+S.variant.mirrorDigits[3]+'</strong> tiefe Kerben zu erkennen. Daneben hat jemand mit einer Nadel eingeritzt:<div class="note">DREI BILDER AN DER WAND. EIN ZEICHEN AN DER SPIELUHR.<br>DER SPIEGEL ERINNERT SICH RÜCKWÄRTS.</div>',
+ [["⬅ Zurück ins Kinderzimmer",kids]],"Kinderzimmer");
+}
+
+function musicBox(){
+ if(S.locked)return;
+ mark('musicBox');S.room='Kinderzimmer';S.locked=true;
+ document.body.classList.add('musicBoxActive');
+ if(kidsSoundTimer)clearTimeout(kidsSoundTimer);
+ if(ambienceAudio){ambienceAudio.pause();ambienceAudio.currentTime=0;ambienceAudio=null;}
+ var ov=document.getElementById('musicOverlay'),wl=document.getElementById('whisperLine'),
+     status=document.getElementById('musicStatus'),escapeBtn=document.getElementById('musicEscape');
+ ov.classList.add('on');
+ var previousMusicVolume=music.volume;
+ music.volume=0; // Daisy Bell + echte Flüsterstimmen sind allein zu hören.
+ daisy.pause();daisy.currentTime=0;daisy.volume=.10;
+ var done=false,scared=false,ending=false,lastCue=-1,escapeVoice=null,escapeTimer=null;
+ // Drei separate Stereo-Flüsterclips: links, rechts, hinter dem Spieler.
+ var boxWhispers=['links','rechts','hinten'].map(function(dir){var audio=new Audio('romina-spieluhr-'+dir+'.mp3');audio.volume=.65;return audio;});
+var boxWhisperTimers=[],whisperStarted=false,whisperIndex=0,whisperFinished=false,pendingSongEnd=false;
+ function startBoxWhisper(){
+  if(done||ending||whisperStarted||!S.sound)return;
+  whisperStarted=true;whisperIndex=0;
+  // Verkettete Wiedergabe statt starrer 7,5-Sekunden-Timer.
+  // Der letzte Satz wird vor dem Liedende abgespielt.
+  function nextWhisper(){
+   if(done||!S.sound||whisperIndex>=boxWhispers.length)return;
+   var audio=boxWhispers[whisperIndex++];audio.currentTime=0;
+   audio.onended=function(){
+    if(whisperIndex<boxWhispers.length){
+     boxWhisperTimers.push(setTimeout(nextWhisper,800));
+    }else{whisperFinished=true;if(pendingSongEnd)completeSongEnd();}
+   };
+   audio.play().catch(function(){status.textContent='Rominas Flüstern konnte nicht abgespielt werden.';});
+  }
+  boxWhisperTimers.push(setTimeout(nextWhisper,500));
+ }
+ function stopBoxWhisper(){
+  boxWhisperTimers.forEach(clearTimeout);boxWhisperTimers=[];
+  boxWhispers.forEach(function(audio){audio.onended=null;audio.pause();audio.currentTime=0;});
+ }
+ var phrases=[[0,'Lausche …'],[5,''],[38,'']];
+ function progress(){
+  if(done||!Number.isFinite(daisy.duration)||daisy.duration<=0)return;
+  var t=daisy.currentTime,idx=0;
+  // Flüstern wird unabhängig vom timeupdate-Event nach fünf Sekunden gestartet.
+  for(var k=0;k<phrases.length;k++){if(t>=phrases[k][0])idx=k;else break}
+  if(idx!==lastCue){lastCue=idx;wl.textContent=phrases[idx][1]}
+  if(!ending)status.textContent='Die Melodie spielt …';
+ }
+ function finish(escaped){
+  if(done)return;done=true;
+  daisy.removeEventListener('ended',onSongEnd);
+  daisy.removeEventListener('timeupdate',progress);
+  daisy.removeEventListener('error',onAudioError);
+  daisy.pause();daisy.currentTime=0;stopBoxWhisper();
+  if(escapeTimer){clearTimeout(escapeTimer);escapeTimer=null;}
+  if(escapeVoice){escapeVoice.pause();escapeVoice=null;}
+  ov.classList.remove('on');document.body.classList.remove('musicBoxActive');
+  S.locked=false;music.volume=previousMusicVolume;
+  if(escaped){
+   render('DIE SPIELUHR','Du reißt dich von der Melodie los. Ein stechender Schmerz bleibt zurück.<br><br><strong>−30 Blut.</strong> Aus der geschlossenen Spieluhr hörst du ein letztes Flüstern.',
+    [['⬅ Zurück',kids]],'Kinderzimmer');
+  }else{
+   render('DIE SPIELUHR','Der letzte Ton verklingt. Der Deckel fällt zu. In das Holz ist eingeritzt:<div class="note">DIE LETZTE VORSTELLUNG WARTET.</div>',
+    [['⬅ Zurück',kids]],'Kinderzimmer');
+  }
+  updateHudOnly();
+ }
+ function completeSongEnd(){
+  if(done||ending)return;
+  ending=true;status.textContent='Die Musik verstummt. Etwas kommt näher …';wl.textContent='';
+  if(!scared){scared=true;stopBoxWhisper();dollJumpscare(true,"spieluhr-neuer-schrei.mp3");loseSanity(7)}
+  setTimeout(function(){finish(false)},1000);
+ }
+ function onSongEnd(){
+  if(done||ending)return;
+  // Der dritte Flüstersatz muss zu Ende spielen, auch wenn Daisy Bell früher endet.
+  daisy.pause();pendingSongEnd=true;
+  if(whisperFinished){completeSongEnd();return;}
+  status.textContent='Die Melodie verstummt … Romina flüstert noch.';
+  if(!whisperStarted)startBoxWhisper();
+  // Nur technische Notbremse bei fehlerhaften Audio-Dateien.
+  boxWhisperTimers.push(setTimeout(completeSongEnd,25000));
+ }
+ function onAudioError(){
+  if(done)return;
+  stopBoxWhisper();
+  status.textContent='Die Audiodatei konnte nicht geladen werden.';
+  wl.textContent='Die Spieluhr ist verstummt.';
+  // Bei einem technischen Fehler darf niemand eingesperrt bleiben oder Blut verlieren.
+  escapeBtn.textContent='Ohne Blutverlust zurück';
+  escapeBtn.onclick=function(){finish(false)};
+ }
+ escapeBtn.textContent='🩸 Vorzeitig verlassen (30 Blut)';
+ escapeBtn.onclick=function(){
+  if(done||ending)return;
+  if(S.blood<30){status.textContent='Du hast nicht genug Blut, um dich loszureißen. Die Melodie hält dich fest.';return}
+  if(!confirm('Willst du die Spieluhr vorzeitig verlassen? Das kostet unwiderruflich 30 Blut.'))return;
+  S.blood-=30;
+  if(S.blood<=50)document.body.classList.add('bloodWeak');
+  loseSanity(5);
+  // Silas spricht erst vollständig; danach folgt eine halbe Sekunde Stille und der Schreck.
+  ending=true;
+  daisy.pause();daisy.currentTime=0;stopBoxWhisper();
+  status.textContent='Die Spieluhr verstummt. Eine Stimme antwortet …';
+  wl.textContent='';
+  escapeBtn.disabled=true;
+  escapeVoice=new Audio('silas-spieluhr-freikauf.mp3');
+  escapeVoice.volume=.65;
+  var voiceFinished=false;
+  function afterVoice(){
+   if(voiceFinished||done)return;
+   voiceFinished=true;
+   escapeTimer=setTimeout(function(){
+    if(done)return;
+    status.textContent='';
+    dollJumpscare(true,'spieluhr-neuer-schrei.mp3');
+    // Der Nachhall darf weiterlaufen, während die Spieluhr wieder verlassen wird.
+    escapeTimer=setTimeout(function(){finish(true)},1100);
+   },500);
+  }
+  escapeVoice.addEventListener('ended',afterVoice,{once:true});
+  escapeVoice.addEventListener('error',afterVoice,{once:true});
+  escapeVoice.play().catch(afterVoice);
+  // Falls ein Browser das End-Ereignis nicht liefert, bleibt die Szene nicht hängen.
+  escapeTimer=setTimeout(afterVoice,16000);
+ };
+ daisy.addEventListener('ended',onSongEnd);
+ daisy.addEventListener('timeupdate',progress);
+ daisy.addEventListener('error',onAudioError);
+ wl.textContent='Lausche …';
+ daisy.play().then(function(){boxWhisperTimers.push(setTimeout(startBoxWhisper,5000))}).catch(function(){
+  if(done)return;
+  status.textContent='Der Browser hat die Wiedergabe blockiert.';
+  wl.textContent='Klicke, um die Spieluhr zu starten.';
+  var b=document.createElement('button');b.textContent='Musik starten';
+  b.onclick=function(){daisy.play().then(function(){boxWhisperTimers.push(setTimeout(startBoxWhisper,5000));b.remove()}).catch(onAudioError)};
+  status.appendChild(b);
+ });
+}
+
+/* BASEMENT */
+function basement(){stopDaisy();
+ render("DER KELLER",
+ (S.light?'Deine Taschenlampe flackert.':'Fast völlige Dunkelheit.')+
+ '<br><br>Eine vierte Uhr liegt zerbrochen am Boden. An einem verrosteten Werkzeugkasten klebt ein halb abgerissenes Etikett.<br><br>Daneben: ein Sicherungskasten, ein roter Scanner und ein weiteres Fotofragment.<br><br>Hinter den Rohren hörst du langsames Atmen.',
+ [
+  ["🔦 Taschenlampe an/aus",()=>{toggleLight();basement()}],
+  ["🔎 Glasscherben untersuchen",clockD],
+  ["🧰 Werkzeugkasten untersuchen",basementTools],
+  ["🧱 Lose Mauerplatte untersuchen",cellarElixir],
+  ["🧩 Fragment bei den Rohren nehmen",()=>piece(5,fragMotif(5),basement)],
+  ["⚡ Sicherungskasten",fuseBox],
+  ["🩸 Scanner",scanner],
+  ["👂 Dem Atmen folgen",breathing],
+  ["⬅ Flur",hall]
+ ],"Keller",true)
+}
+function clockD(){clockPuzzle(3,basement)}
+
+function breathing(){dollJumpscare(false);
+ secretFound("pipes");
+ if(!S.light)toast("Du tastest dich an den kalten Rohren entlang …");
+ battery("rohre");mark("batSecret");
+ render("HINTER DEN ROHREN",
+ 'Du findest eine Ersatzbatterie.<br><br>An der Wand steht frisch geschrieben:<div class="note">DREH DICH NICHT UM.</div>',
+ [["⬅ Zurück",basement]],"Keller")
+}
+function fuseBox(){
+ if(!S.flags.clockSolved)return render("DER SICHERUNGSKASTEN",'Vier Sicherungen tragen dieselben Zeichen wie die Uhren.<br><br>Du kennst die richtige Reihenfolge noch nicht.',[["⬅ Zurück",basement]],"Keller");
+ if(!S.flags.basementSequence)return basementSequence();
+ add("Silberschlüssel");
+ render("DER SICHERUNGSKASTEN",
+ 'Die richtige Reihenfolge aktiviert ein verborgenes Fach.<br><br>Darin liegt ein <strong>Silberschlüssel</strong>.',
+ [["⬅ Keller",basement]],"Keller")
+}
+function basementSequence(){
+ ask("DIE SICHERUNGEN",
+ 'Auf den vier Sicherungen stehen dieselben Wörter, die dir die Uhren gegeben haben.<br><br>Setze sie in der Reihenfolge ein, in der du sie in den vier Räumen gefunden hast.<br><br>Gib die vier Wörter ohne Leerzeichen ein.',
+ ["__CLOCK_RANDOM__"],
+ ()=>{mark("basementSequence");fuseBox()},
+ basement)
+}
+function scanner(){
+ secretFound("scanner");
+ if(!has("Spiegelsplitter"))return render("DER SCANNER",'Der Scanner verlangt eine Blutprobe.<br><br>Du brauchst etwas Scharfes.',[["⬅ Zurück",basement]],"Keller");
+ mark("blood");
+ add("Blutmarkierung");
+ render("ZUGANG BESTÄTIGT",
+ 'Der Scanner leuchtet grün.<br><br><strong>SUBJEKT 11 BESTÄTIGT</strong><br><br>Ein Fach öffnet sich. Darin liegt eine schwarze Karte:<div class="note">DER ECHTE AUSGANG<br>HAT KEINEN GRIFF.</div>',
+ [["⬅ Keller",basement]],"Keller")
+}
+
+/* MIRROR ROOM */
+function mirrorRoom(){stopDaisy();
+ render("DER SPIEGELSAAL",
+ 'Vier hohe Spiegel.<br><br>Drei zeigen dich normal.<br><br>Der vierte zeigt den Raum hinter dir — aber <strong>ohne dich</strong>.<br><br>Auf dem Rahmen befinden sich die vier Uhrensymbole.',
+ [
+  ["🕰️ Zeichen im Rahmen ansehen",clockMaster],
+  ["🪞 Den vierten Spiegel berühren",mirrorTouch],
+  ["🧩 Fragment im Spiegelrahmen nehmen",()=>piece(6,fragMotif(6),mirrorRoom)],
+  ["🪵 Alte Fußleisten untersuchen",hiddenEmergencyBattery],
+  ["⬅ Flur",hall]
+ ],"Spiegelsaal",true)
+}
+function clockMaster(){
+ if(S.flags.clockSolved)return clockAftermath();
+ if(!(S.flags.clock0&&S.flags.clock1&&S.flags.clock2&&S.flags.clock3))
+  return render('DIE VIER VERTIEFUNGEN','Vier Vertiefungen warten auf Zeichen. Erst die richtig gestellten Uhren geben ihre Geheimnisse preis.', [['⬅ Zurück',mirrorRoom]],'Spiegelsaal');
+ ask('DIE VIER VERTIEFUNGEN',
+  'Die vier freigelegten Zeichen gehören in die Reihenfolge der Uhren. Gib die Symbolnamen ohne Leerzeichen ein.',
+  ['__CLOCK_RANDOM__'],clockEnding,mirrorRoom);
+}
+
+function mirrorTouch(){
+ if(!has("Spiegelscherbe"))return render("DER VIERTE SPIEGEL","Im Spiegel fehlt ein Stück Glas. Die Aussparung hat dieselbe Form wie eine Scherbe.",[["⬅ Zurück",mirrorRoom]],"Spiegelsaal");
+ if(!S.flags.clockSolved)return render("DER VIERTE SPIEGEL","Die Oberfläche bleibt schwarz. Im Rahmen befinden sich vier leere Vertiefungen.",[["⬅ Zurück",mirrorRoom]],"Spiegelsaal");
+ if(S.flags.mirrorSolved)return blackMirror();
+ ask("DAS SPIEGELRÄTSEL",
+ 'Auf dem beschlagenen Glas erscheinen vier leere Stellen.<br><br>Darunter steht nur:<div class="note">DAS KIND ZÄHLTE.<br>ICH ZEIGE ES ANDERSHERUM.</div><br>Welche vierstellige Zahl gehört in den Spiegel?',
+ ["__MIRROR_RANDOM__"],
+ function(){mark("mirrorSolved");add("Spiegelmarke");blackMirror()},mirrorRoom);
+}
+var mirrorPoemAudio=null;
+function playMirrorPoem(decoded){
+ if(mirrorPoemAudio){mirrorPoemAudio.pause();mirrorPoemAudio.currentTime=0}
+ if(!S.sound){toast("Ton ist ausgeschaltet.");return}
+ mirrorPoemAudio=new Audio(decoded?'gedicht-entschluesselt.mp3':'gedicht-rueckwaerts.mp3');
+ mirrorPoemAudio.volume=decoded?.65:.5;
+ music.pause();
+ mirrorPoemAudio.play().catch(function(){toast("Audio konnte nicht gestartet werden.")});
+}
+function blackMirror(){
+ S.room="Spiegelsaal";
+ render("DER SCHWARZE SPIEGEL",
+ '<div class="blackMirrorPane" aria-label="Der Spiegel ist vollkommen schwarz"></div><p>Das Glas färbt sich schwarz. Hinter der Oberfläche flüstert eine Stimme ein Gedicht — doch jedes Wort klingt verkehrt herum.</p><div class="note">DIE WAHRHEIT IST NICHT VERSCHWUNDEN. SIE SPRICHT NUR ANDERS.</div>',
+ [["🔊 Das rückwärts gesprochene Gedicht anhören",function(){playMirrorPoem(false)}],
+ ["🖼️ Das Geheimnis des Gedichts entschlüsseln",mirrorPoemSolve],
+ ...(S.flags.mirrorPhotoDropped?[["🖼️ Das gefallene Foto untersuchen",mirrorPhotoReveal]]:[]),
+ ["📚 Zum Archiv und den Tonbandapparat suchen",function(){if(mirrorPoemAudio)mirrorPoemAudio.pause();archive()}],
+ ["⬅ Zurück",mirrorRoom]],"Spiegelsaal");
+}
+function archiveTape(){
+ if(!S.flags.mirrorSolved)return render("DER TONBANDAPPARAT","Das alte Tonbandgerät ist leer. Eine Spule fehlt.",[["⬅ Zurück",archive]],"Archiv");
+ var decoded=!!S.flags.poemDecoded;
+ render("DER ALTE TONBANDAPPARAT",
+ 'Das Gerät kann die Stimme des schwarzen Spiegels wiedergeben. Eine beschädigte Mechanik kann sie auch verständlich machen — gegen einen Preis.<br><br>'+ (decoded?'<div class="note">Asche unter kaltem Stein.<br>Sechs Stimmen flüstern ganz allein.<br>Chroniken ruhen hinter Glas.<br>Hinter dem Siegel wartet was.<br>Erinnere dich, was einst geschah.</div>':'<em>Du kannst die Aufnahme auch selbst entschlüsseln, ohne Blut zu bezahlen.</em>'),
+ [["▶️ Rückwärtsaufnahme anhören (kostenlos)",function(){playMirrorPoem(false)}],
+ [decoded?"▶️ Entschlüsseltes Gedicht erneut anhören":"🩸 Aufnahme entschlüsseln (10 Blut)",function(){
+  if(decoded){playMirrorPoem(true);return}
+  if(S.blood<10){toast("Nicht genug Blut.");return}
+  if(!confirm("Für die verständliche Aufnahme einmalig 10 Blut opfern?"))return;
+  S.blood-=10;mark("poemDecoded");if(S.blood<=50)document.body.classList.add("bloodWeak");updateHudOnly();mirrorPhotoReveal();playMirrorPoem(true);
+ }],
+ ["🪞 Zum schwarzen Spiegel zurück",mirrorRoom],
+ ["📁 Akte 47 untersuchen",archiveFile],
+ ["⬅ Zurück",function(){if(mirrorPoemAudio)mirrorPoemAudio.pause();archive()}]],"Archiv");
+}
+function escapeDoors(){
+ S.room="Flur";
+ render("DREI FLUCHTTÜREN",
+ "Drei schwere Türen stehen nebeneinander. In das Holz sind I, II und III geritzt. Die erste Tür trägt eine dunkle, kreisförmige Spur.",
+ [
+ ["🚪 Tür I untersuchen",function(){
+  if(!has("Schlüssel I"))return render("TÜR I","Ein schmales Schlüsselloch. Die Tür ist verschlossen. Der passende Schlüssel liegt irgendwo in der Vergangenheit dieses Hauses.",[["⬅ Zurück",escapeDoors]],"Flur");
+  render("TÜR I — DER ANFANG",
+   "Der Schlüssel aus Akte 47 passt. Hinter der Tür ist ein heller Gang zu erkennen. Ein Luftzug riecht nach Staub und altem Holz. Willst du hindurchgehen?",
+   [["🗝️ Tür I aufschließen und hindurchgehen",loopEnding],["⬅ Noch nicht",escapeDoors]],"Flur");
+ }],
+ ["🚪 Tür II untersuchen",function(){render("TÜR II","Ein anderes Schloss. Dein Schlüssel passt nicht. Dieser Fluchtweg bleibt vorerst versiegelt.",[["⬅ Zurück",escapeDoors]],"Flur")}],
+ ["🚪 Tür III untersuchen",function(){render("TÜR III","Auf der anderen Seite ist ein leises Scharren zu hören. Das Schloss lässt sich mit Schlüssel I nicht öffnen.",[["⬅ Zurück",escapeDoors]],"Flur")}],
+ ["⬅ Flur",hall]
+ ],"Flur");
+}
+function loopEnding(){
+ if(mirrorPoemAudio){mirrorPoemAudio.pause();mirrorPoemAudio.currentTime=0}
+ S.locked=false;
+ end("IM LOOP GEFANGEN",
+  '<p>Du trittst durch die erste Tür. Der Gang führt ins Freie. Du atmest auf.</p>'+
+  '<p>Doch dann hörst du das vertraute Ticken. Vor dir steht wieder die erste Tür des Puppenhauses.</p>'+
+  '<p>Aus der Dunkelheit flüstert eine Stimme: <em>„Die Vorstellung beginnt von vorn.“</em></p>'+
+  '<h3>ENDE I — IM LOOP GEFANGEN</h3>');
+}
+
+
+/* Erste Begegnung: geskriptete Warnung ohne Countdown und ohne Tod. */
+var puppeteerFirstAudio=null;
+function firstPuppeteerEncounter(){
+ if(S.flags.puppeteerFirstEncounter){portraitAftermath();return;}
+ S.flags.puppeteerFirstEncounter=true;
+ S.locked=true;
+ if(rominaPhraseAudio&&!rominaPhraseAudio.paused)rominaPhraseAudio.pause();
+ var panel=document.getElementById('puppeteerEncounter'),button=document.getElementById('puppeteerEncounterContinue');
+ var label=document.getElementById('puppeteerEncounterText');
+ panel.style.display='flex';button.style.display='none';
+ label.textContent='Eins … Zwei … Drei …';
+ puppeteerFirstAudio=new Audio('puppeteer-vorstellung.mp3');puppeteerFirstAudio.volume=1;
+ var finished=false;
+ function ready(){if(finished)return;finished=true;leave();}
+ function leave(){if(puppeteerFirstAudio){puppeteerFirstAudio.pause();puppeteerFirstAudio.currentTime=0;}panel.style.display='none';S.locked=false;portraitAftermath();}
+ button.onclick=leave;
+ puppeteerFirstAudio.onended=ready;puppeteerFirstAudio.onerror=ready;
+ if(!S.sound){ready();return;}
+ puppeteerFirstAudio.play().catch(function(){
+  // Browser-Autoplay-Sperre: die Spieleraktion startet dieselbe Szene.
+  button.style.display='inline-block';button.textContent='▶ Puppeteer anhören';
+  button.onclick=function(){button.style.display='none';button.textContent='Weitergehen';puppeteerFirstAudio.play().catch(ready);};
+ });
+}
+
+/* Einmalige Bild-Enthüllung nach dem korrekt gelösten Fragmenträtsel. */
+function portraitReveal(){
+ if(S.flags.portraitScareSeen){portraitAftermath();return}
+ S.flags.portraitScareSeen=true;
+ S.locked=true;
+ var el=document.getElementById("portraitScene");
+ var cap=document.getElementById("portraitCaption");
+ var vid=document.getElementById("portraitAnimation");
+ var original=el.querySelector(".stageFrame > img");
+ var jobs=[],finished=false,videoStarted=false;
+ el.className="on";cap.textContent="";
+ original.src="romina-silas-vor-dem-verschwinden.jpg";
+ original.style.display="block";vid.style.display="none";
+ vid.pause();try{vid.currentTime=0}catch(e){}
+ function later(ms,fn){jobs.push(setTimeout(function(){if(!finished)fn()},ms))}
+ function finish(){
+  if(finished)return;
+  finished=true;jobs.forEach(clearTimeout);
+  vid.pause();vid.onended=null;vid.onerror=null;
+  vid.style.display="none";original.style.display="block";
+  el.className="";firstPuppeteerEncounter();
+ }
+ function jumpscareAfterVideo(){
+  if(finished)return;
+  vid.pause();vid.style.display="none";original.style.display="none";
+  el.classList.add("attack");S.jumps++;
+  playScareAudio("spieluhr-neuer-schrei.mp3",.40);
+  later(850,function(){el.classList.add("blackout")});
+  later(1650,finish);
+ }
+ function startVideo(){
+  if(finished)return;
+  videoStarted=true;
+  original.style.display="none";vid.style.display="block";
+  vid.onended=jumpscareAfterVideo;
+  vid.onerror=jumpscareAfterVideo;
+  try{vid.currentTime=0}catch(e){}
+  var attempt=vid.play();
+  if(attempt&&attempt.catch)attempt.catch(function(){
+   // Some browsers reject delayed playback with sound: retry muted.
+   vid.muted=true;
+   var retry=vid.play();
+   if(retry&&retry.catch)retry.catch(jumpscareAfterVideo);
+  });
+  // Safety net if the media does not emit an ended event.
+  later(8000,jumpscareAfterVideo);
+ }
+ document.getElementById("portraitSceneSkip").onclick=finish;
+ // Original portrait first, then the supplied animation, then the jumpscare.
+ later(1400,startVideo);
+}
+function portraitAftermath(){
+ mark("portraitHaunted");
+ S.creature=Math.max(S.creature,2);
+ render("DAS VERÄNDERTE PORTRÄT",
+ '<div class="portrait"><img src="romina-silas-verschwunden.jpg" alt="Das Porträt ohne Romina und Silas" style="display:block;width:100%;height:auto;max-height:72vh;object-fit:contain;filter:contrast(1.08) brightness(.93)"></div>'+
+ '<p>Wo eben noch Romina und Silas standen, sind nur dunkle Flecken. Die riesige Marionette scheint näher gerückt zu sein.</p>'+
+ '<p><strong>DU HAST SIE GESEHEN. JETZT HAT SIE DICH GESEHEN.</strong></p>'+
+ '<p>Am Rand des Bildes hält der <strong>Teddy</strong> etwas Metallisches in der Pfote. Hinter dem dritten Wandbild ist ein dunkler Hohlraum zu erkennen. Im Spiegel des Fotos stand eine Gestalt.</p>',
+ [["🧸 Zurück ins Kinderzimmer",kids],["📚 Zum Archiv",archive]],"Startkammer");
+}
+
+/* PICTURE PUZZLE */
+var fragmentNames={1:"Teddy",2:"Standuhr",3:"Akte",4:"Ballons",5:"Rohre",6:"Spiegel"};
+function piece(n,motif,back){
+ if(S.pieces.indexOf(n)<0){
+   S.pieces.push(n);
+   add("Fragment "+n+" — "+motif);
+ }
+ var found='<div class="panel"><strong>FRAGMENT '+n+' / 6</strong><br>Darauf ist deutlich zu erkennen: <strong>'+motif+'</strong>.</div><p>Die Nummer ist auf der Rückseite eingeritzt.</p>';
+ if(S.pieces.length>=6){
+   render("FOTOFRAGMENT "+n,
+   found+'Du hast jetzt alle sechs nummerierten Fragmente.<br><br>Der leere Bilderrahmen in der Startkammer könnte jetzt wichtig sein.',
+   [["🖼️ Zum Bilderrahmen",puzzleBoard],["⬅ Zurück",back]],S.room);
+ }else{
+   render("FOTOFRAGMENT "+n,
+   found+'Du besitzt jetzt '+S.pieces.length+'/6 Fragmente.',
+   [["⬅ Zurück",back]],S.room);
+ }
+}
+function puzzleBoard(){
+ if(S.flags.pictureSolved){portraitAftermath();return}
+ app.innerHTML=top()+'<div class="story"><h2>DER LEERE BILDERRAHMEN</h2>'+
+ '<p>Sechs Vertiefungen sind mit <strong>1 bis 6</strong> nummeriert.</p>'+
+ '<p class="muted">Der Rahmen verrät dir nichts über das, was du bereits gefunden hast.</p>'+
+ '<div class="portrait"><img src="romina-silas-vor-dem-verschwinden.jpg" alt="Verblasstes Bild von Romina und Silas hinter sechs fehlenden Fragmenten" style="width:100%;height:100%;object-fit:cover;filter:grayscale(.9) brightness(.4) blur(5px)"><div class="portraitGrid">'+Array(6).fill('<span></span>').join('')+'</div></div>'+
+ '<div id="fragmentInputs">'+
+ [1,2,3,4,5,6].map(function(n){
+   return '<label style="display:block;margin:10px 0"><strong>Fragment '+n+'</strong>'+
+   '<input id="frag'+n+'" autocomplete="off" placeholder="..."></label>';
+ }).join("")+
+ '</div>'+
+ '<button class="primary" id="checkFragments">BILD PRÜFEN</button>'+
+ '<button id="leaveFragments">Zurück</button></div>';
+
+ document.getElementById("checkFragments").onclick=function(){
+   if(S.pieces.length<6){
+     wrong();
+     return;
+   }
+   var expected=[1,2,3,4,5,6].map(function(n){
+     return fragMotif(n).toLowerCase()
+       .replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss")
+       .replace(/[^a-z0-9]/g,"");
+   });
+   var ok=true;
+   for(var i=1;i<=6;i++){
+     var a=document.getElementById("frag"+i).value.toLowerCase();
+     a=a.replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z0-9]/g,"");
+     if(a!==expected[i-1])ok=false;
+   }
+   if(ok){
+     mark("pictureSolved");add("Zusammengesetztes Foto");
+     portraitReveal();
+   }else wrong();
+ };
+ document.getElementById("leaveFragments").onclick=startRoom;
+}
+
+
+function hiddenEmergencyBattery(){
+ S.room="Spiegelsaal";
+ if(S.flags.hiddenBatteryTaken){
+   return render("DIE FUSSLEISTE",
+   'Hinter der gelösten Leiste ist nur noch ein staubiger, schmaler Hohlraum.',
+   [["⬅ Zurück",mirrorRoom]],"Spiegelsaal");
+ }
+ render("DIE FUSSLEISTE",
+ (S.light?'Erst im flackernden Licht bemerkst du, dass eine der alten Leisten nicht bündig mit der Wand abschließt.':'Im Dunkeln tastest du die Wand entlang. Eine Leiste gibt unter deinen Fingern nach.')+'<br><br>Sie bewegt sich kaum einen Millimeter. Dahinter scheint etwas zu liegen, aber deine Finger kommen nicht hinein.',
+ [
+  ["🪙 Mit etwas Dünnem in den Spalt fahren",function(){
+    if(!(has("Silberschlüssel")||has("Messingschlüssel")||has("Spiegelscherbe"))){
+      toast("Du brauchst etwas Dünnes und Festes.");
+      loseSanity(1);
+      return hiddenEmergencyBattery();
+    }
+    render("HINTER DER WAND",
+    'Die Leiste springt mit einem trockenen Knacken heraus.<br><br>Im Hohlraum liegt etwas in vergilbtes Papier gewickelt.<br><br><strong>Eine Batterie.</strong><br><br>Daneben steht mit Bleistift:<div class="note">FÜR DEN, DER ZU LANGE BLEIBT.</div>',
+    [["🔋 Batterie einsetzen",function(){S.flags.hiddenBatteryTaken=true;battery("hidden");mirrorRoom()}],["⬅ Für später liegen lassen",mirrorRoom]],"Spiegelsaal");
+  }],
+  ["⬅ Zurück",mirrorRoom]
+ ],"Spiegelsaal");
+}
+
+/* FINAL */
+function finalDoor(){
+ var miss=[];
+ if(!S.flags.pictureSolved)miss.push("Foto");
+ if(!S.flags.clockSolved)miss.push("Uhren");
+ if(!S.flags.mirrorSolved)miss.push("Spiegel");
+ if(!S.flags.basementSequence)miss.push("Sicherungen");
+ if(!S.flags.blood)miss.push("Scanner");
+ if(!has("Messingschlüssel"))miss.push("Messingschlüssel");
+ if(!has("Silberschlüssel"))miss.push("Silberschlüssel");
+ if(!S.flags.stageWired)miss.push("Bühnenverkabelung");
+ if(miss.length)return render("DIE SCHWARZE TÜR",
+ 'Drei Schlüssellöcher. Eine rechteckige Vertiefung. Kein Griff.<br><br><strong>Der Mechanismus reagiert noch nicht.</strong><br><br>Die Tür verrät dir nicht, was fehlt.',
+ [["⬅ Zurück",mirrorRoom]],"Schwarze Tür");
+ finalRiddle1()
+}
+function finalRiddle1(){
+ ask("DAS LETZTE SCHLOSS — I",
+ 'Auf dem Uhrensiegel stehen <strong>4</strong> und <strong>7</strong>.<br>Auf der Spiegelmarke steht <strong>1</strong>.<br>Auf der schwarzen Karte vom Scanner steht <strong>11</strong>.<br><br>Eine Gravur sagt:<div class="note">NIMM DIE ZAHL,<br>DIE ZWEIMAL GEBOREN WURDE.</div>Welche zweistellige Zahl ist gemeint?',
+ ["11"],
+ finalRiddle2,
+ mirrorRoom)
+}
+function finalRiddle2(){
+ ask("DAS LETZTE SCHLOSS — II",
+ 'Das zusammengesetzte Foto zeigt sechs Motive:<br><strong>Schlüssel – Tür – Auge – Uhr – Bild – Tod</strong>.<br><br>Die Gravur an der Tür sagt:<div class="note">AUGE VOR UHR.<br>TÜR NACH SCHLÜSSEL.<br>TOD ZULETZT.</div>Welche Position im Bild hat die <strong>Uhr</strong>?',
+ ["4","vier"],
+ finalRiddle3,
+ mirrorRoom)
+}
+function finalRiddle3(){
+ ask("DAS LETZTE SCHLOSS — III",
+ 'Du hast jetzt zwei Antworten: <strong>11</strong> und <strong>4</strong>.<br><br>Auf der Rückseite des Messingschlüssels steht <strong>7</strong>.<br>Auf dem Silberschlüssel steht <strong>1</strong>.<br><br>Letzte Gravur:<div class="note">SPIEGEL — SCANNER — FOTO — MESSING</div>Gib den vierstelligen Endcode ein.',
+ ["1147"],
+ ()=>fakeCrashThen(function(){creatorEnding("ENDING 01 — NICHT DRAUSSEN",
+ 'Die schwarze Tür öffnet sich lautlos.<br><br>Kalte Nachtluft.<br><br>Du machst drei Schritte.<br><br>Dann geht dein Bildschirm aus.<br><br>Als das Bild zurückkehrt, stehst du wieder vor derselben Tür — diesmal von der <strong>anderen Seite</strong>.<br><br>Auf deinem Handy steht:<br><strong>„RAUM 2 WARTET.“</strong>')}),
+ mirrorRoom)
+}
+
+menu();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+THE LAST ROOM 2.6.2 – FREIE ERKUNDUNG / TEST
+
+Alle sechs Bildfragmente bleiben ohne andere Rätsellösungen erreichbar.
+Vor dem Bilderrätsel sind die ersten drei Uhren lösbar; die vierte Uhr ist blockiert.
+Zwei der sechs zufällig verteilten Bühnenhinweise sind erst danach sichtbar.
+Das letzte Wort des Schlafzimmer-Briefrätsels wird erst nach der Bildsequenz lesbar.
+Die Bühnenverkabelung kann vorher nicht abgeschlossen werden.
+Nach der Bildsequenz werden diese Teile zugänglich.
+
+WICHTIG: Die Puppeteer-Jagd ist in dieser Codebasis noch nicht vollständig implementiert.
+Die Bildsequenz wurde eingebunden; bitte Browser-Tests durchführen.

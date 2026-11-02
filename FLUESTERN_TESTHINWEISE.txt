@@ -1,0 +1,11 @@
+Version 2.6.6 – Rominas acht neue Flüstersätze
+
+- Original-WAV in acht MP3-Clips getrennt.
+- Zufällige Wiedergabe nach 50 Sekunden, dann ca. alle 55–140 Sekunden.
+- Reihenfolge gemischt; jeder Satz kommt vor einer Wiederholung einmal dran.
+- Stereo links/rechts per Web Audio API; Kopfhörer empfohlen.
+- Lautstärke dezent variabel.
+- Pausiert bei Intro, Bühne/Ritual, Brief, Spieluhr und Cutscenes.
+- Keine Rätseländerungen.
+
+Bitte im Browser mit aktivem Ton und Kopfhörern testen.

@@ -1,0 +1,1 @@
+2.7.4: Hauptmusik halbiert; Puppeteer lauter; Todeschor leiser; Ende-IV-Test: nur Dröhnen und Stimmen; eigene leise Intro-Spieluhr statt Daisy Bell; Rominas Spieluhrflüstern mit 5s Timer; neues Bild nach dem Verschwinden; nach Puppeteer-Vorstellung automatisch zum Bild.

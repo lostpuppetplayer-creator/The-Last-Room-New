@@ -1,0 +1,1 @@
+Ritualtext: Mund/Stimme korrigiert. Sechs Marionetten einzeln prüfen mit sofortigem Richtig/Falsch und passendem Ton; richtige bleiben gespeichert. Porträt-Jumpscare nutzt spieluhr-neuer-schrei.mp3 leiser. Bild nach Verschwinden unverändert: richtiges Bild muss noch bereitgestellt werden.

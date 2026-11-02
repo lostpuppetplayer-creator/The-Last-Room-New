@@ -1,0 +1,1 @@
+Ritualflüstern: Start auf Bühnen-Klick stumm vorbereiten, nach 5 Sekunden hörbar ab Beginn; manuelle Wiedergabe bleibt verfügbar. Browser-Audioeinschränkungen können abweichen.

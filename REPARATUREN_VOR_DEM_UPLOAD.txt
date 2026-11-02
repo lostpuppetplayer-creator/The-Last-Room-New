@@ -1,0 +1,22 @@
+THE LAST ROOM – Reparatur-Build 2.0.1 (20.10.2026)
+
+KORRIGIERT
+- Das Originalporträt lädt nun aus romina-silas-portrait.svg (zuvor falsche JPG-Dateiendung).
+- Bilderrätsel zeigt das verblasste Originalbild im Rahmen; Fragmente müssen weiterhin selbst eingetragen werden.
+- Das verschwundene Porträt romina-silas-verschwunden.jpg bleibt erhalten und ist besser erkennbar.
+- Puppen-/Vorhangmann-Jumpscare nutzt vorhandene Bilder; fehlende Soundnamen korrigiert.
+- Rominas gesprochener Brief aus ihrer bereitgestellten Aufnahme als rominas-brief.mp3 ergänzt.
+- Bei Batterie 0 startet ein sichtbarer Countdown von 30 Sekunden; bei Ablauf folgt ein Vorhangmann-Ende.
+- Auch ohne Licht sind Raumwechsel und Batteriefunde möglich; Keller-Rohre töten nicht automatisch bei Dunkelheit.
+- Versteckte Batterie im Spiegelsaal über Fußleisten erreichbar, auch ertastbar im Dunkeln, Werkzeug erforderlich.
+- Ersatzbatterien werden direkt eingesetzt und stoppen den Countdown.
+- Kein sichtbares Inventar. Interne Quest-Flags bleiben für Rätsel erhalten.
+- Startkammer kann weiterhin nur mit aufgenommener Taschenlampe verlassen werden.
+- Romina-Worker und ihre neue Flüsterstimme nicht geändert.
+
+WICHTIG
+Diese Version wurde statisch geprüft (JavaScript-Syntax und Asset-Pfade), nicht vollständig browserseitig durchgespielt.
+Vor dem Ersetzen der GitHub-Dateien alte Version sichern und mit Mods testen.
+Schlafzimmer, Bühne, Fundort-Zufall und Ritual sind noch nicht enthalten.
+
+UPLOAD: Alle Dateien aus dem ZIP in das Wurzelverzeichnis des GitHub-Repositories hochladen; bestehende Dateien mit gleichen Namen ersetzen.

@@ -1,0 +1,1 @@
+Bühne 2.4: Rominas Ritualflüstern beginnt 5 Sekunden nach Betreten der Bühne automatisch. Erneutes Anhören per Knopf weiterhin möglich. Browser können zeitverzögerte Autowiedergabe blockieren; dann den Knopf nutzen.

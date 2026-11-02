@@ -1,0 +1,1 @@
+2.7.2: Silas vier Hinweis-Sprechclips nach Blutbezahlung, rückwärts und vorwärts aufgenommenes Silas-Spiegelgedicht, erste geskriptete Puppeteer-Begegnung mit Originalstimme nach Porträtanimation. Erste Begegnung ohne Tod/Countdown. Browser-Audiotest noch erforderlich.

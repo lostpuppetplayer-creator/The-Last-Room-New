@@ -1,0 +1,1 @@
+Intro: Texteinblendungen an die per Stilleerkennung ermittelten Sprecheinsaetze angepasst (Naeherungswerte). Leise Spieluhrmusik + Rauschen separat, beide stoppen bei Intro-Ende oder Ueberspringen. Bitte im Browser pruefen, ob jede Zeile synchron ist.

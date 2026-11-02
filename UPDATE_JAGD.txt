@@ -1,0 +1,14 @@
+THE LAST ROOM – PUPPETEER-JAGD 2.6 TEST
+
+Nach dem Bilderraetsel startet eine einmalige, geskriptete Begegnung ohne Countdown.
+Dialog schrittweise ueber 'Weiter'; spaeter werden eigene Sprachdateien eingesetzt.
+Danach startet nach einer Ruhephase die echte Jagd.
+Flur: 45 Sekunden. Andere Raeume: 30 Sekunden.
+Verstecke: Schlafzimmer (Bett, Schrank); Bad (Wanne, Waescheschrank).
+Nur rechtzeitig versteckt UND Taschenlampe aus = sicher.
+Beim sicheren Verstecken pausieren Zeit, Batterie, Sanity und Dunkelheitszaehler.
+Bei Fang in einer echten Jagd: Ende IV.
+Nach ueberlebter Jagd: eine Notiz im Flur nachlesbar.
+Vorlaeufige Puppeteer-Stimme: vorhandene Testaufnahme + Browser-Sprachausgabe.
+
+WICHTIG: Bitte lokal testen; noch kein vollstaendiger Browserdurchlauf verifiziert.

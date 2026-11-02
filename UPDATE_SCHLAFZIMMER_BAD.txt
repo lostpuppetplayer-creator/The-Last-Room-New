@@ -1,0 +1,11 @@
+THE LAST ROOM – Testversion 2.4.3
+
+NEU: Schlafzimmer und Badezimmer über den Flur erreichbar.
+Schlafzimmer: sechs verwaschene Briefreste mit pro Spiel wechselnder Reihenfolge; Schreibtischrätsel mit manuell eingegebenem Satz; einmalige Belohnung +180 Sekunden Spielzeit und +50 Sanity (maximal 100); zusätzliche Geschichte von Romina, Silas und der Marionette.
+Badezimmer: Badewanne hinter Vorhang und Wäscheschrank.
+Verstecke im Schlafzimmer: unter Bett, Kleiderschrank.
+
+WICHTIG: Die Verstecke sind als erkundbare Orte vorbereitet. Das Jagdsystem des Puppeteers ist noch NICHT aktiv. Die Belohnung verlängert die allgemeine Spielzeit, nicht eine Jagd.
+
+Ausgangsbasis: Reparatur 2.4.2. Original-Audio und -Bilder unverändert.
+Syntax geprüft, vollständiger Browser-Durchlauf noch nicht erfolgt. Bitte vor GitHub-Upload lokal testen.

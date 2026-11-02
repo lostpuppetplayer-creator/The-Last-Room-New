@@ -1,0 +1,7 @@
+THE LAST ROOM – Reparatur 2.4.1 (Testversion)
+- Introaufnahme auf bessere wahrnehmbare Lautstärke normalisiert.
+- Ritualflüstern als vorladbares Audioelement, 5 Sekunden nach Bühnenbetritt und jederzeit per Knopf erneut abspielbar.
+- Hintergrundmusik während des Ritualflüsterns leiser.
+- Blut-Hinweise: verschiedene Hinweise, pro Hinweis nur eine Zahlung, bereits gekaufte Hinweise kostenlos erneut abrufbar.
+- Bühnenhinweise deutlicher erklärt; wechselnde Fundorte und Zuordnungen bleiben.
+Bitte erst lokal testen; Browser können verzögerten automatischen Ton blockieren.

@@ -1,0 +1,4 @@
+TESTVERSION: Silas wird noch von der vorhandenen synthetischen Stimme gesprochen.
+Rominas echte Aufnahme „Silas! Hör auf!“ ist in die verständliche Aufnahme eingemischt.
+Die Rückwärtsfassung enthält beide Stimmen rückwärts.
+Sobald Silas’ echte Sprachaufnahme vorliegt, beide Gedicht-Dateien ersetzen.

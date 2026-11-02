@@ -1,0 +1,1 @@
+2.7.3: Ende IV Audio-Test im Flur; 7 geschnittene Todessprueche, leicht hoelzerne Puppeteer-Stimme, gemeinsamer Drei-Stimmen-Abschluss. Erste Puppeteer-Vorstellung ebenfalls leicht hoelzern. Noch keine automatische Chase-Todeslogik.

@@ -1,0 +1,5 @@
+Für die Bühne optional in denselben GitHub-Ordner wie index.html hochladen:
+puppen-schreien.mp3 — bei falscher Verkabelung
+puppen-lachen.mp3 — bei richtiger Verkabelung
+Ohne diese Dateien bleibt das Rätsel spielbar, aber stumm.
+Die Stimmen von Romina und Silas sind noch NICHT eingebaut.
