@@ -969,7 +969,7 @@ function silenceForEndFour(){
  if(ambienceAudio){ambienceAudio.pause();ambienceAudio=null;}
  if(kidsSoundTimer)clearTimeout(kidsSoundTimer);
  if(endFourDrone){endFourDrone.pause();endFourDrone=null;}
- endFourDrone=new Audio('uhrwerk-droehnen.wav');endFourDrone.loop=true;endFourDrone.volume=.10;
+ endFourDrone=new Audio('uhrwerk-droehnen.wav');endFourDrone.loop=true;endFourDrone.volume=0;
  endFourDrone.play().catch(function(){});
 }
 function restoreAfterEndFour(){
