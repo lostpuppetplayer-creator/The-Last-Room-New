@@ -433,7 +433,7 @@ function bloodOffering(){
   hintVoice.play().catch(done);
  }
  updateHudOnly();
- }
+}
 
 function startIntro(){
  music.pause();music.currentTime=0;
@@ -969,9 +969,7 @@ function silenceForEndFour(){
  if(ambienceAudio){ambienceAudio.pause();ambienceAudio=null;}
  if(kidsSoundTimer)clearTimeout(kidsSoundTimer);
  if(endFourDrone){endFourDrone.pause();endFourDrone=null;}
- endFourDrone=new Audio('puppeteer-todesdroehnen.wav');
- endFourDrone.loop=true;
- endFourDrone.volume=0.07;
+ endFourDrone=new Audio('uhrwerk-droehnen.wav');endFourDrone.loop=true;endFourDrone.volume=.10;
  endFourDrone.play().catch(function(){});
 }
 function restoreAfterEndFour(){
@@ -1474,10 +1472,10 @@ var boxWhisperTimers=[],whisperStarted=false,whisperIndex=0,whisperFinished=fals
     [['⬅ Zurück',kids]],'Kinderzimmer');
   }
   updateHudOnly();
-function completeSongEnd(){
-    if(done||ending||!whisperFinished)return;
- 
-   ending=true;status.textContent='Die Musik verstummt. Etwas kommt näher …';wl.textContent='';
+ }
+ function completeSongEnd(){
+  if(done||ending)return;
+  ending=true;status.textContent='Die Musik verstummt. Etwas kommt näher …';wl.textContent='';
   if(!scared){scared=true;stopBoxWhisper();dollJumpscare(true,"spieluhr-neuer-schrei.mp3");loseSanity(7)}
   setTimeout(function(){finish(false)},1000);
  }
@@ -1489,13 +1487,7 @@ function completeSongEnd(){
   status.textContent='Die Melodie verstummt … Romina flüstert noch.';
   if(!whisperStarted)startBoxWhisper();
   // Nur technische Notbremse bei fehlerhaften Audio-Dateien.
-boxWhisperTimers.push(setTimeout(function(){
-    if(whisperFinished){
-        completeSongEnd();
-    }else{
-        status.textContent='Romina flüstert noch ...';
-    }
-},25000));
+  boxWhisperTimers.push(setTimeout(completeSongEnd,25000));
  }
  function onAudioError(){
   if(done)return;
