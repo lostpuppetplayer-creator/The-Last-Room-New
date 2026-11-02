@@ -1474,10 +1474,10 @@ var boxWhisperTimers=[],whisperStarted=false,whisperIndex=0,whisperFinished=fals
     [['⬅ Zurück',kids]],'Kinderzimmer');
   }
   updateHudOnly();
- }
- function completeSongEnd(){
-  if(done||ending)return;
-  ending=true;status.textContent='Die Musik verstummt. Etwas kommt näher …';wl.textContent='';
+function completeSongEnd(){
+    if(done||ending||!whisperFinished)return;
+ 
+   ending=true;status.textContent='Die Musik verstummt. Etwas kommt näher …';wl.textContent='';
   if(!scared){scared=true;stopBoxWhisper();dollJumpscare(true,"spieluhr-neuer-schrei.mp3");loseSanity(7)}
   setTimeout(function(){finish(false)},1000);
  }
@@ -1489,7 +1489,13 @@ var boxWhisperTimers=[],whisperStarted=false,whisperIndex=0,whisperFinished=fals
   status.textContent='Die Melodie verstummt … Romina flüstert noch.';
   if(!whisperStarted)startBoxWhisper();
   // Nur technische Notbremse bei fehlerhaften Audio-Dateien.
-  boxWhisperTimers.push(setTimeout(completeSongEnd,25000));
+boxWhisperTimers.push(setTimeout(function(){
+    if(whisperFinished){
+        completeSongEnd();
+    }else{
+        status.textContent='Romina flüstert noch ...';
+    }
+},25000));
  }
  function onAudioError(){
   if(done)return;
