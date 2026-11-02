@@ -969,8 +969,9 @@ function silenceForEndFour(){
  if(ambienceAudio){ambienceAudio.pause();ambienceAudio=null;}
  if(kidsSoundTimer)clearTimeout(kidsSoundTimer);
  if(endFourDrone){endFourDrone.pause();endFourDrone=null;}
- endFourDrone=new Audio('uhrwerk-droehnen.wav');endFourDrone.loop=true;endFourDrone.volume=.10;
- endFourDrone.play().catch(function(){});
+ endFourDrone=new Audio('puppeteer-todesdroehnen.wav');
+endFourDrone.loop=true;
+endFourDrone.volume=0.07;endFourDrone.play().catch(function(){});
 }
 function restoreAfterEndFour(){
  if(endFourDrone){endFourDrone.pause();endFourDrone.currentTime=0;endFourDrone=null;}
