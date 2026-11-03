@@ -513,7 +513,13 @@ function newDollScare(kind){
  newDollScareBusy=true;S.jumps++;
  img.src=newDollImages[kind];
  layer.classList.remove('on');void layer.offsetWidth;layer.classList.add('on');
- if(S.sound)playScareAudio(kind==='ritual'?'spieluhr-neuer-schrei.mp3':'43343986_woman-scream-01.mp3',kind==='ritual'?.44:.26);
+ if(S.sound){
+  // Eigene neue Puppen-Sounds; Spieluhr und Porträt behalten ihre bisherigen Sounds.
+  if(kind==='ritual')playScareAudio('horror-jumpscare-high-string-piano-impact-gfx-sounds-1-00-06.mp3',.54);
+  else if(kind==='error')playScareAudio('horror-jumpscare-high-string-piano-impact-gfx-sounds-1-00-06.mp3',.42);
+  else if(Math.random()<.38)playScareAudio('get-out-ghostly-whisper-om-fx-1-00-05.mp3',.48);
+  else playScareAudio('horror-jumpscare-high-string-piano-impact-gfx-sounds-1-00-06.mp3',.42);
+ }
  if(newDollScareTimer)clearTimeout(newDollScareTimer);
  newDollScareTimer=setTimeout(function(){layer.classList.remove('on');newDollScareBusy=false;},850);
  return true;
@@ -657,7 +663,7 @@ function maybeDrawerSpider(room,returnFn){
  var layer=document.getElementById('drawerSpider');if(!layer)return false;
  var img=layer.querySelector('img');img.style.animation='none';void img.offsetWidth;img.style.animation='';
  layer.classList.add('on');
- if(S.sound)playScareAudio('43343986_woman-scream-01.mp3',.22);
+ if(S.sound)playScareAudio('horror-jumpscare-high-string-piano-impact-gfx-sounds-1-00-06.mp3',.48);
  setTimeout(function(){layer.classList.remove('on');drawerSpiderBusy=false;},1400);
  return true;
 }
@@ -1216,7 +1222,66 @@ function chaseScheduleVoice(){
   a.play().catch(next);
  },3500+Math.floor(Math.random()*4000));
 }
+
+// Einmalige Versteck-Filmsequenz pro Durchlauf; Ende IV hat einen separaten Slot.
+var hidingCutsceneUsed=false,endingFourCutsceneUsed=false,cutscenePlaying=false;
+var hidingCutsceneFiles={
+ 'bett':'cutscene-bett.mp4',
+ 'archiv_aktenschrank':'cutscene-aktenschrank.mp4',
+ 'kinder_kuscheltiere':'cutscene-kuscheltiere-schluessel.mp4',
+ 'badewanne':'cutscene-badewanne.mp4'
+};
+function playStoryCutscene(file,finished){
+ if(cutscenePlaying){if(finished)finished();return;}
+ cutscenePlaying=true;
+ var overlay=document.createElement('div');
+ overlay.style.cssText='position:fixed;inset:0;background:#000;z-index:20000;display:flex;align-items:center;justify-content:center';
+ var video=document.createElement('video');
+ video.src=file;video.autoplay=true;video.playsInline=true;video.preload='auto';
+ video.controls=false;video.style.cssText='width:100%;height:100%;object-fit:contain';
+ video.muted=!S.sound;
+ overlay.appendChild(video);document.body.appendChild(overlay);
+ var done=false;
+ function finish(){
+  if(done)return;done=true;
+  clearTimeout(failsafe);video.onended=null;video.onerror=null;
+  video.pause();overlay.remove();cutscenePlaying=false;
+  if(finished)finished();
+ }
+ video.onended=finish;video.onerror=finish;
+ var failsafe=setTimeout(finish,10000);
+ var promise=video.play();
+ if(promise&&promise.catch)promise.catch(function(){
+  // Browser können Audio-Autoplay blockieren: stumm erneut versuchen.
+  video.muted=true;
+  var retry=video.play();
+  if(retry&&retry.catch)retry.catch(finish);
+ });
+}
+function maybePlayHidingCutscene(){
+ if(hidingCutsceneUsed||!activeHidingPlace)return;
+ var file=hidingCutsceneFiles[activeHidingPlace];if(!file)return;
+ hidingCutsceneUsed=true;
+ // Während des Videos bleiben Jagd, Batterie und die restliche Spielzeit stehen.
+ S.locked=true;
+ playStoryCutscene(file,function(){
+  if(activeHidingPlace==='kinder_kuscheltiere'&&!S.flags.kuscheltierCutsceneKey){
+   S.flags.kuscheltierCutsceneKey=true;
+   add('Alter Schlüssel aus dem Kuscheltierhaufen');
+  }
+  S.locked=false;
+  chaseLastAt=Date.now();
+  chasePhaseUntil=Date.now()+3500;
+ });
+}
+
 function chaseCaught(reason){
+ if(!endingFourCutsceneUsed){
+  endingFourCutsceneUsed=true;
+  S.locked=true;
+  playStoryCutscene('cutscene-ende-iv.mp4',function(){chaseCaught(reason);});
+  return;
+ }
  chaseTestStop();
  S.ended=true;S.locked=true;
  if(timer){clearInterval(timer);timer=null;}
@@ -1285,6 +1350,7 @@ function chaseTestStart(){
     chasePhase='leaving';chasePhaseUntil=now+3500;
     chaseUpdateSound();
     toast('Puppeteer hat dich übersehen … seine Schritte entfernen sich.');
+    maybePlayHidingCutscene();
    }
   }else if(chasePhase==='leaving'){
    if(!activeHidingPlace||S.light){chaseCaught(!activeHidingPlace?'early':'light');return;}
