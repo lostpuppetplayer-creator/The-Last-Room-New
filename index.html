@@ -184,7 +184,7 @@ body.musicBoxActive #dollScare img{content:url("vorhangmann-jumpscare.jpg");filt
 </style>
 </head>
 <body>
-<div id="flashFixed">🔦 <span id="flashPercent">100%</span></div><div id="blackoutTimer" role="status" aria-live="off" aria-label="Verbleibende Zeit ohne Batterie"><small>LICHT AUS · DER VORHANGMANN KOMMT</small><strong id="blackoutSeconds">00:30</strong></div><div id="dark"></div>
+<div id="flashFixed">🔦 <span id="flashPercent">100%</span></div><div id="blackoutTimer" role="status" aria-live="off" aria-label="Verbleibende Zeit ohne Batterie"><small>BEEIL DICH</small><strong id="blackoutSeconds">00:30</strong></div><div id="dark"></div>
 <div id="scare">◉</div>
 <div id="toast"></div><div id="creature"></div><div id="fakeCrash" class="fakeCrash"></div><div id="dollScare"><img src="doll-jumpscare.jpg" alt=""></div><div id="handScare"><div class="hand">🖐️</div></div>
 <audio id="ritualAudio" src="romina-ritualfluestern.mp3" preload="auto"></audio>
@@ -205,30 +205,32 @@ var S={
 var ROMINA_VOICE_ENABLED=true;
 var ROMINA_VOICE_ENDPOINT="https://the-last-room-romina.lostpuppetplayer.workers.dev/speak";
 var rominaWhisperUrl=null,rominaWhisperAudio=null,rominaWhisperPending=false;
-var rominaWhisperNext=0,rominaWhisperCount=0;
+var rominaWhisperNext=0,rominaWhisperCount=0,rominaWhisperRetryAt=0,rominaWhisperRetryCount=0;
+var rominaNameAudioStatus="Noch nicht angefragt";
+// In der Browserkonsole abrufbar: rominaNameAudioStatus
 function prepareRominaWhisper(name){
- if(!ROMINA_VOICE_ENABLED||rominaWhisperPending||rominaWhisperUrl)return;
+ if(!ROMINA_VOICE_ENABLED||rominaWhisperPending||rominaWhisperUrl||Date.now()<rominaWhisperRetryAt)return;
  // Nur ein kurzer Name; keine freie Texteingabe an den Sprachdienst.
  // Der geheime Admin-Token darf NIEMALS im Browsercode stehen.
- if(!/^[\p{L}][\p{L} '-]{0,23}$/u.test(name))return;
- rominaWhisperPending=true;
+ if(!/^[\p{L}][\p{L} '-]{0,23}$/u.test(name)){rominaNameAudioStatus="Name nicht unterstützt";console.warn("Namensflüstern: ungültiger Name",name);return;}
+ rominaWhisperPending=true;rominaNameAudioStatus="Sprachaufnahme wird angefragt";
  fetch(ROMINA_VOICE_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name})})
- .then(function(r){if(!r.ok)throw Error("Romina nicht verfügbar");return r.blob()})
+ .then(function(r){if(!r.ok)throw Error("Sprachdienst HTTP "+r.status+" (Name möglicherweise nicht freigeschaltet)");return r.blob()})
  .then(function(b){if(!b.type.startsWith("audio/")||b.size>1000000)throw Error("Ungültiges Audio");
    rominaWhisperUrl=URL.createObjectURL(b);rominaWhisperAudio=new Audio(rominaWhisperUrl);
-   rominaWhisperAudio.volume=.38;rominaWhisperNext=Date.now()+45000;
+   rominaWhisperAudio.volume=.38;rominaWhisperNext=Date.now()+25000;rominaWhisperRetryCount=0;rominaNameAudioStatus="Namensaufnahme geladen";console.info("Namensflüstern: Audio geladen",b.size,"Bytes");
  })
- .catch(function(){/* Spiel bleibt ohne Namensflüstern vollständig spielbar. */})
+ .catch(function(e){rominaNameAudioStatus="Sprachdienstfehler: "+e.message;rominaWhisperRetryCount++;rominaWhisperRetryAt=Date.now()+Math.min(180000,15000*Math.pow(2,Math.min(rominaWhisperRetryCount,3)));console.warn('Rominas Namensflüstern: Sprachdienst nicht erreichbar oder ungültiges Audio. Nächster Versuch später.',e);})
  .finally(function(){rominaWhisperPending=false});
 }
 function maybeRominaWhisper(){
+ if(!rominaWhisperAudio&&S.name&&S.name!=='Unbekannter')prepareRominaWhisper(S.name);
  if(!rominaWhisperAudio||!S.sound||S.ended||S.locked||document.hidden||
    S.room==='Start'||S.room==='Startkammer'||ambientBlocked()||
    Date.now()<rominaWhisperNext||rominaWhisperCount>=5)return;
- if(Math.random()>.11)return;
  if(!rominaWhisperAudio.paused)return;
  rominaWhisperAudio.currentTime=0;
- rominaWhisperAudio.play().then(function(){rominaWhisperCount++}).catch(function(){});
+ rominaWhisperAudio.play().then(function(){rominaWhisperCount++;rominaNameAudioStatus="Name wurde abgespielt";}).catch(function(e){rominaNameAudioStatus="Audio-Wiedergabefehler: "+e.message;console.warn('Namensflüstern konnte nicht starten:',e);});
  rominaWhisperNext=Date.now()+65000+Math.random()*110000;
 }
 // Rominas acht ORIGINAL-Aufnahmen: zufällig aus wechselnden Richtungen (Kopfhörer empfohlen).
@@ -242,35 +244,20 @@ var rominaPhrases=[
 ];
 var rominaPhraseAudio=new Audio();
 rominaPhraseAudio.preload='none';
-var rominaPhraseNext=Date.now()+50000;
+var rominaPhraseNext=Date.now()+75000;
 var rominaPhraseBag=[],rominaPhraseLast=-1;
 var rominaPhraseContext=null,rominaPhrasePan=null;
 function rominaPhraseBlocked(){
- return ambientBlocked()||S.room==='Startkammer'||document.hidden||
+ return !S.sound||S.ended||S.locked||S.room==='Start'||S.room==='Startkammer'||document.hidden||chaseTestRemaining!==null||
   !!document.querySelector('#letterOverlay.on')||
   (ritualAudio&&!ritualAudio.paused)||
   (ritualDialogueAudio&&!ritualDialogueAudio.paused)||
   (rominaWhisperAudio&&!rominaWhisperAudio.paused)||
   (stageSfx&&!stageSfx.paused);
 }
-function prepareRominaSpatial(){
- if(rominaPhraseContext)return;
- try{
-  var C=window.AudioContext||window.webkitAudioContext;
-  if(!C)return;
-  var ctx=new C();
-  if(!ctx.createStereoPanner){ctx.close();return}
-  var src=ctx.createMediaElementSource(rominaPhraseAudio);
-  var pan=ctx.createStereoPanner();
-  src.connect(pan);pan.connect(ctx.destination);
-  rominaPhraseContext=ctx;rominaPhrasePan=pan;
- }catch(e){console.warn('Raumklang nicht verfügbar:',e)}
-}
-// Der Audiokontext wird erst durch eine echte Spielerinteraktion aktiviert.
-document.addEventListener('pointerdown',function(){
- prepareRominaSpatial();
- if(rominaPhraseContext&&rominaPhraseContext.state==='suspended')rominaPhraseContext.resume().catch(function(){});
-},{passive:true});
+// Originalaudio direkt über HTMLAudioElement abspielen: kein stummgeschalteter AudioContext.
+// Browser-Stereo bleibt erhalten; räumliches Panning wird erst nach stabiler Wiedergabe wieder aktiviert.
+function prepareRominaSpatial(){}
 function nextRominaPhrase(){
  if(!rominaPhraseBag.length){
   rominaPhraseBag=[0,1,2,3,4,5,6,7];
@@ -295,11 +282,14 @@ function maybeRominaPhrase(){
  var pans=[-.92,-.65,.65,.92],pan=pans[Math.floor(Math.random()*pans.length)];
  if(rominaPhrasePan)rominaPhrasePan.pan.value=pan;
  // Etwas unterschiedliche Entfernung, aber nie unangenehm laut.
- rominaPhraseAudio.volume=.32+Math.random()*.15;
- rominaPhraseAudio.play().catch(function(e){console.warn('Rominas Flüstern:',e)});
- rominaPhraseNext=Date.now()+55000+Math.random()*85000;
+ rominaPhraseAudio.volume=.12;
+ rominaPhraseAudio.play().then(function(){console.info('Romina Hausgeflüster gestartet:',rominaPhraseAudio.src)}).catch(function(e){console.warn('Rominas Hausgeflüster konnte nicht starten:',rominaPhraseAudio.src,e);rominaPhraseNext=Date.now()+30000;});
+ rominaPhraseNext=Date.now()+115000+Math.random()*95000;
 }
-rominaPhraseAudio.addEventListener('ended',function(){rominaPhraseNext=Math.max(rominaPhraseNext,Date.now()+40000)});
+rominaPhraseAudio.addEventListener('ended',function(){rominaPhraseNext=Math.max(rominaPhraseNext,Date.now()+18000)});
+rominaPhraseAudio.addEventListener('error',function(){console.warn('Romina-Datei nicht geladen:',rominaPhraseAudio.src);rominaPhraseNext=Date.now()+30000;});
+// Unabhängig von der Spieluhr und vom globalen Spieltimer nach neuen Flüsterchancen suchen.
+setInterval(function(){if(!S.ended){maybeRominaPhrase();maybeRominaWhisper();}},2000);
 var timer=null;
 var puzzleOrder=[4,1,6,2,5,3], puzzleTarget=[1,2,3,4,5,6], selected=null;
 
@@ -341,7 +331,7 @@ function scheduleKidsSound(){
  kidsSoundTimer=setTimeout(playKidsSound,1800);
 }
 
-function ambientBlocked(){return !!endFourDrone||!S.sound||S.locked||S.ended||S.room==='Start'||!!document.querySelector('#introOverlay.on,#musicOverlay.on,#portraitScene.on,#spiderScene.on')}
+function ambientBlocked(){return chaseTestRemaining!==null||!!endFourDrone||!S.sound||S.locked||S.ended||S.room==='Start'||!!document.querySelector('#introOverlay.on,#musicOverlay.on,#portraitScene.on,#spiderScene.on')}
 function ambientPlay(kind,vol){
  if(ambientBlocked()||!ambienceFiles[kind])return;
  if(ambienceAudio&&!ambienceAudio.paused)return;
@@ -354,23 +344,23 @@ function ambientOnRoom(room){
  var now=Date.now();if(now-ambienceLast<3500)return;
  ambienceLast=now;
  // Nicht jede Tür löst ein Geräusch aus; das Haus soll unberechenbar bleiben.
- if(Math.random()<.43)ambientPlay('door',.19);
- else if(Math.random()<.36)ambientPlay('floor',.12);
+ if(Math.random()<.28)ambientPlay('door',.19);
+ else if(Math.random()<.48)ambientPlay('floor',.14);
 }
 function ambientSchedule(){
  if(ambienceTimer)clearTimeout(ambienceTimer);
  function tick(){
   if(!ambientBlocked()&&S.room!=='Startkammer'){
-   var pool=['creak','floor','crack','knock'];
-   if(S.room==='Flur')pool.push('footsteps','footsteps');
+   var pool=['creak','creak','floor','floor','floor','crack','knock','door'];
+   if(S.room==='Flur'&&Math.random()<.16)pool.push('footsteps');
    if(S.room==='Kinderzimmer')pool.push('baby','baby','laugh','laugh','laugh');
    if(S.room==='Keller')pool.push('wind','creak');
    if(S.room==='Spiegelsaal')pool.push('laugh','knock');
-   if(S.flags.pictureSolved||S.flags.portraitScareSeen)pool.push('footsteps','footsteps','laugh');
+   if(S.flags.pictureSolved||S.flags.portraitScareSeen){pool.push('creak','floor');if(Math.random()<.12)pool.push('footsteps');}
    var k=pool[Math.floor(Math.random()*pool.length)];
    if(Math.random()<.78)ambientPlay(k,k==='wind'?.1:k==='laugh'?.3:k==='baby'?.24:.17);
   }
-  ambienceTimer=setTimeout(tick,12000+Math.random()*16000);
+  ambienceTimer=setTimeout(tick,11000+Math.random()*12000);
  }
  ambienceTimer=setTimeout(tick,9000);
 }
@@ -383,10 +373,11 @@ function render(title,text,choices,room,grid){
   choices=choices.slice();
   if(S.flags.pictureSolved||stageClueAt(S.room)<4)choices.push(['🔎 Eine unauffällige Spur untersuchen',function(){stageClue(S.room)}]);
  }
+ // Jagd beginnt automatisch; kein Testknopf mehr im Spiel.
  var btns=choices.map((c,i)=>'<button data-i="'+i+'" '+(c[2]?'disabled':'')+'>'+c[0]+'</button>').join("");
  app.innerHTML=top()+'<div class="story"><h2>'+title+'</h2>'+text+'</div><div id="choices" class="'+(grid?'grid':'')+'">'+btns+'<button id="bloodBtn">🩸 Hinweise ('+(S.sacrifices<4?[10,15,20,25][S.sacrifices]+' Blut für neuen Hinweis':'gekaufte Hinweise lesen')+')</button></div>';
  document.getElementById('bloodBtn').onclick=bloodOffering;
- document.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{if(!S.ended)choices[+b.dataset.i][1]()});updateHudOnly()
+ document.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{if(!S.ended)choices[+b.dataset.i][1]()});updateHudOnly();chaseTestDraw();if(chaseTestRemaining!==null)chaseUpdateSound();chaseMaybeStart(oldRoom,S.room)
 }
 // Vier unterschiedliche Hinweise pro Durchlauf. Bereits bezahlte Hinweise bleiben kostenlos.
 function availableBloodHints(){
@@ -523,7 +514,7 @@ function stopDaisy(){
 function playDaisy(){
  if(!S.sound||!daisy)return;
  music.volume=.02;
- daisy.currentTime=0;daisy.volume=.10;daisy.play().catch(function(){});
+ daisy.currentTime=0;daisy.volume=.16;daisy.play().catch(function(){});
 }
 function playScareAudio(file,volume){
  if(!S.sound)return;
@@ -653,12 +644,12 @@ var batteryDrainTicks=0;
 function startTimer(){
  if(timer)return;
  timer=setInterval(function(){
-  if(S.ended||S.locked||document.hidden)return;
+  if(S.ended||S.locked||document.hidden||(chaseTestRemaining!==null&&chasePhase!=='chase'&&activeHidingPlace&&!S.light))return;
   S.time--;
-  if(S.room!=="Startkammer"&&S.light&&++batteryDrainTicks>=6.25){
-   batteryDrainTicks-=6.25;
+  if(S.room!=="Startkammer"&&S.light&&++batteryDrainTicks>=7.8125){
+   batteryDrainTicks-=7.8125;
    S.battery=Math.max(0,S.battery-1);
-   if(S.battery===0){S.light=false;S.blackoutRemaining=30;dark.classList.add("on");toast("Die Batterie ist leer. Du hast 30 Sekunden!")}
+   if(S.battery===0){S.light=false;S.blackoutRemaining=30;dark.classList.add("on");toast("Die Batterie ist leer. Beeil dich!")}
   }
   if(S.blackoutRemaining!==null&&S.battery===0){
    S.blackoutRemaining--;
@@ -689,7 +680,7 @@ function battery(id){
  if(S.flags["battery_"+id]){toast("Diese Batterie hast du bereits benutzt.");return false}
  S.flags["battery_"+id]=true;S.battery=100;S.light=true;S.blackoutRemaining=null;dark.classList.remove("on");toast("Neue Batterie eingesetzt — 100%.");updateHudOnly();return true
 }
-function end(title,text){S.ended=true;if(timer)clearInterval(timer);music.pause();dark.classList.remove("on");app.innerHTML='<div class="kicker">THE LAST ROOM — CREATOR BUILD</div><h1>ENDE</h1><div class="story center"><h2>'+title+'</h2>'+text+'</div><button class="primary" onclick="location.reload()">NOCHMAL SPIELEN</button>'}
+function end(title,text){chaseTestStop();S.ended=true;if(timer)clearInterval(timer);music.pause();dark.classList.remove("on");app.innerHTML='<div class="kicker">THE LAST ROOM — CREATOR BUILD</div><h1>ENDE</h1><div class="story center"><h2>'+title+'</h2>'+text+'</div><button class="primary" onclick="location.reload()">NOCHMAL SPIELEN</button>'}
 function ask(title,body,answers,win,back){
  app.innerHTML=top()+'<div class="story"><h2>'+title+'</h2><div class="panel">'+body+'</div><input id="answer" autocomplete="off" placeholder="Deine Antwort"><button class="primary" id="check">PRÜFEN</button><button id="back">⬅ Zurück</button></div>';
  document.getElementById("check").onclick=function(){var a=document.getElementById("answer").value.toLowerCase();
@@ -953,7 +944,6 @@ function hall(){stopDaisy();
   ["🛏️ Schlafzimmer von Romina und Silas",bedroom],
   ["🛁 Altes Badezimmer",bathroom],
   ["🎭 Zur verlassenen Bühne",stageRoom],
-  ["🎧 TEST: Ende IV – Todessprüche",testEndingFour],
   ["↩️ Zurück in die Startkammer",startRoom]
  ],"Flur",true)
 }
@@ -969,10 +959,8 @@ function silenceForEndFour(){
  if(ambienceAudio){ambienceAudio.pause();ambienceAudio=null;}
  if(kidsSoundTimer)clearTimeout(kidsSoundTimer);
  if(endFourDrone){endFourDrone.pause();endFourDrone=null;}
-endFourDrone=new Audio('puppeteer-herzschlag.wav');
-endFourDrone.loop=true;
-endFourDrone.volume=0.22;
-endFourDrone.play().catch(function(){});
+ endFourDrone=new Audio('uhrwerk-droehnen.wav');endFourDrone.loop=true;endFourDrone.volume=.10;
+ endFourDrone.play().catch(function(){});
 }
 function restoreAfterEndFour(){
  if(endFourDrone){endFourDrone.pause();endFourDrone.currentTime=0;endFourDrone=null;}
@@ -1105,37 +1093,217 @@ function checkBedroomLetter(){
  }
  bedroomDesk();
 }
+// PUPPETEER-JAGD: erste Begegnung bleibt eine geskriptete Warnung ohne Tod.
+var chaseTestRemaining=null,chaseTestInterval=null,chaseVoice=null,chaseVoiceTimer=null;
+var chaseStartedAt=0,chaseLastAt=0,chaseLastRoom='',chaseVoiceOrder=[];
+var chaseFootsteps=null,chaseFootstepTimer=null,chasePuppetRoom='',chaseAutoTimer=null;
+var chaseHiddenSafeSince=0;
+var chaseVisibleUntil=0;
+var chasePhase='idle',chasePhaseUntil=0,chaseLastTick=0;
+var chaseVoiceFiles=[
+ 'puppeteer-jagd-01-bist-du-hier.mp3','puppeteer-jagd-02-versteckt-oder-nicht.mp3',
+ 'puppeteer-jagd-03-ich-weiss-wo-du-bist.mp3','puppeteer-jagd-04-profi.mp3',
+ 'puppeteer-jagd-05-ich-gebe-auf.mp3','puppeteer-jagd-06-eins-zwei.mp3',
+ 'puppeteer-jagd-07-ich-bin-du.mp3','puppeteer-jagd-08-was-willst-du-tun.mp3',
+ 'puppeteer-jagd-09-ich-finde-dich.mp3'];
+function chaseProximity(){
+ // Der Puppeteer beginnt in einem anderen Raum und kommt im Verlauf der Jagd näher.
+ // Raumwechsel des Spielers schaffen kurzfristig Abstand.
+ var progress=chaseTestRemaining===null?0:Math.min(1,(Date.now()-chaseStartedAt)/30000);
+ var sameRoom=chasePuppetRoom===S.room;
+ return Math.max(.12,Math.min(1,(sameRoom?.55:.16)+progress*.65));
+}
+function chaseUpdateSound(){
+ var proximity=chaseProximity();
+ if(chaseVoice)chaseVoice.volume=chasePhase==='leaving'?.08:Math.min(.75,.18+proximity*.55);
+ if(chaseFootsteps)chaseFootsteps.volume=chasePhase==='leaving'?.12:chasePhase==='search'?.78:Math.min(.78,.10+proximity*.62);
+}
+function chaseStopFootsteps(){
+ if(chaseFootstepTimer){clearTimeout(chaseFootstepTimer);chaseFootstepTimer=null;}
+ if(chaseFootsteps){chaseFootsteps.pause();chaseFootsteps.currentTime=0;chaseFootsteps=null;}
+}
+function chasePlayFootsteps(){
+ if(chaseTestRemaining===null||S.ended||!S.sound)return;
+ var a=new Audio('puppeteer-schwere-schritte.wav');
+ chaseFootsteps=a;
+ a.loop=true;
+ a.playbackRate=.85;
+ chaseUpdateSound();
+ a.play().catch(function(){});
+}
+function chaseStopVoice(){
+ if(chaseVoiceTimer){clearTimeout(chaseVoiceTimer);chaseVoiceTimer=null;}
+ if(chaseVoice){chaseVoice.onended=null;chaseVoice.onerror=null;chaseVoice.pause();chaseVoice=null;}
+}
+function chaseTestStop(message){
+ if(chaseTestInterval){clearInterval(chaseTestInterval);chaseTestInterval=null;}
+ if(chaseTestRemaining!==null)chaseLastAt=Date.now();
+ chaseTestRemaining=null;chasePhase='idle';chasePhaseUntil=0;chaseHiddenSafeSince=0;chaseVisibleUntil=0;chaseStopVoice();chaseStopFootsteps();
+ var display=document.getElementById('chaseTestDisplay');if(display)display.remove();
+ if(message)toast(message);
+}
+function chaseTestDraw(){
+ if(chaseTestRemaining===null)return;
+ var display=document.getElementById('chaseTestDisplay');
+ if(!display){
+  display=document.createElement('div');display.id='chaseTestDisplay';
+  display.style.cssText='position:fixed;top:85px;left:50%;transform:translateX(-50%);z-index:9999;color:#f22;text-align:center;font:bold 76px monospace;text-shadow:0 0 16px #a00,0 3px 5px #000;pointer-events:none;';
+  document.body.appendChild(display);
+ }
+ display.style.display=chasePhase==='chase'&&Date.now()<chaseVisibleUntil?'block':'none';
+ display.innerHTML='<div style="font:bold 23px sans-serif;letter-spacing:2px;white-space:nowrap;margin-bottom:6px">Die Jagd beginnt</div><div>'+String(chaseTestRemaining)+'</div>';
+}
+function chaseScheduleVoice(){
+ if(chaseTestRemaining===null||chasePhase!=='chase'||!S.sound||S.ended)return;
+ chaseVoiceTimer=setTimeout(function(){
+  chaseVoiceTimer=null;
+  if(chaseTestRemaining===null||chasePhase!=='chase'||S.ended||document.hidden||S.locked){if(chasePhase==='chase')chaseScheduleVoice();return;}
+  if(!chaseVoiceOrder.length)chaseVoiceOrder=shuffle([0,1,2,3,4,5,6,7,8]);
+  var i=chaseVoiceOrder.pop(),a=new Audio(chaseVoiceFiles[i]);chaseVoice=a;chaseUpdateSound();
+  function next(){if(chaseVoice===a){chaseVoice=null;chaseScheduleVoice();}}
+  a.onended=next;a.onerror=next;
+  a.play().catch(next);
+ },3500+Math.floor(Math.random()*4000));
+}
+function chaseCaught(reason){
+ chaseTestStop();
+ S.ended=true;S.locked=true;
+ if(timer){clearInterval(timer);timer=null;}
+ if(ambienceAudio){ambienceAudio.pause();ambienceAudio=null;}
+ if(rominaPhraseAudio)rominaPhraseAudio.pause();
+ music.pause();
+ dark.classList.remove('on');
+ var reasonIndex=reason==='light'?1:reason==='early'?6:reason==='nohide'?5:0;
+ app.innerHTML=top()+'<div class="story center"><h1>ENDE IV – DAS LETZTE VERSTECK</h1>'+
+ '<p>Der Puppeteer hat dich gefunden. Unsichtbare Fäden ziehen sich um deine Hände.</p>'+
+ '<p id="chaseDeathStatus">„Dein Bewusstsein gehört jetzt mir …“</p>'+
+ '<button class="primary" onclick="location.reload()">NOCHMAL SPIELEN</button></div>';
+ var a=new Audio('puppeteer-tod-'+(reasonIndex+1)+'.mp3');
+ a.volume=1;endFourAudio=a;
+ a.onended=function(){
+  if(endFourAudio!==a)return;
+  var chorus=new Audio('ende-iv-drei-stimmen.mp3');chorus.volume=.15;endFourAudio=chorus;
+  chorus.play().catch(function(){});
+ };
+ a.play().catch(function(){});
+}
+function chaseTestStart(){
+ if(S.ended||S.locked||activeHidingPlace||!S.flags.puppeteerFirstEncounter){
+  toast('Die Jagd beginnt erst nach Puppeteers erster Warnung und außerhalb eines Verstecks.');return;
+ }
+ chaseTestStop();
+ chaseLastAt=Date.now();
+ chaseStartedAt=chaseLastAt;
+ chaseLastRoom=S.room;
+ chasePuppetRoom='Flur'===S.room?'Schlafzimmer':'Flur';
+ var durations={easy:[30,45],normal:[20,30],hard:[15,25]};
+ var limits=durations[S.difficulty]||durations.normal;
+ chaseTestRemaining=S.room==='Flur'?limits[1]:limits[0];
+ chasePhase='chase';chasePhaseUntil=0;
+ chaseHiddenSafeSince=0;
+ chaseVisibleUntil=Date.now()+({easy:15000,normal:10000,hard:5000}[S.difficulty]||10000);
+ if(ambienceAudio){ambienceAudio.pause();ambienceAudio=null;}
+ chaseTestDraw();chaseScheduleVoice();chasePlayFootsteps();
+ chaseTestInterval=setInterval(function(){
+  if(S.ended){chaseTestStop();return;}
+  var now=Date.now();
+  if(document.hidden||S.locked){chaseLastAt=now;return;}
+  if(chasePhase==='chase'){
+   var elapsed=Math.floor((now-chaseLastAt)/1000);
+   if(elapsed>0){
+    chaseLastAt+=elapsed*1000;
+    chaseTestRemaining=Math.max(0,chaseTestRemaining-elapsed);
+   }
+   if((now-chaseStartedAt)>9000)chasePuppetRoom=S.room;
+   chaseUpdateSound();
+   chaseTestDraw();
+   if(chaseTestRemaining<=0){
+    // Puppeteer hat den Raum erreicht. Er sucht jetzt fünf Sekunden lang.
+    chasePhase='search';chasePhaseUntil=now+5000;
+    chaseStopVoice();
+    chasePuppetRoom=S.room;
+    chaseUpdateSound();
+    toast('Puppeteer ist hier … er durchsucht die Verstecke!');
+   }
+  }else if(chasePhase==='search'){
+   chaseUpdateSound();
+   if(now>=chasePhaseUntil){
+    if(!activeHidingPlace){chaseCaught('nohide');return;}
+    if(S.light){chaseCaught('light');return;}
+    // Erfolgreich versteckt: Puppeteer entfernt sich hörbar.
+    chasePhase='leaving';chasePhaseUntil=now+3500;
+    chaseUpdateSound();
+    toast('Puppeteer hat dich übersehen … seine Schritte entfernen sich.');
+   }
+  }else if(chasePhase==='leaving'){
+   if(!activeHidingPlace||S.light){chaseCaught(!activeHidingPlace?'early':'light');return;}
+   if(chaseFootsteps){
+    var fraction=Math.max(0,(chasePhaseUntil-now)/3500);
+    chaseFootsteps.volume=.20*fraction;
+   }
+   if(now>=chasePhaseUntil){
+    chaseTestStop('Puppeteer ist fort. Du hast überlebt.');
+   }
+  }
+ },250);
+}
+function chaseMaybeStart(oldRoom,newRoom){
+ if(chaseTestRemaining!==null||activeHidingPlace||S.ended||S.locked||!S.flags.puppeteerFirstEncounter)return;
+ if(oldRoom===newRoom||newRoom==='Startkammer'||newRoom==='Start'||newRoom==='Schwarze Tür')return;
+ // Nach der ersten Warnung kurze Schonfrist; nach jeder Jagd 75 Sekunden Pause.
+ if(Date.now()-chaseLastAt<75000)return;
+ if(Math.random()<.35)chaseTestStart();
+}
+// Jagden starten auch ohne Raumwechsel automatisch nach der ersten Warnung.
+chaseAutoTimer=setInterval(function(){
+ if(!S.flags.puppeteerFirstEncounter||S.ended||S.locked||document.hidden||activeHidingPlace||chaseTestRemaining!==null)return;
+ if(S.room==='Startkammer'||S.room==='Start'||S.room==='Schwarze Tür')return;
+ if(Date.now()-chaseLastAt<75000)return;
+ if(Math.random()<.32)chaseTestStart();
+},5000);
+var activeHidingPlace=null;
+function enterHiding(place,title,description,returnFn,room){
+ if(S.ended||S.locked)return;
+ activeHidingPlace=place;
+ function showHiding(){
+  var lightState=S.light?'AN':'AUS';
+  // Licht allein stoppt die Jagd nicht; die sichere Deckung prüft der Jagdtimer.
+  render(title,description+'<div class="note">Du bist versteckt. Taschenlampe: <strong>'+lightState+'</strong>. Du kannst sie hier selbst ein- oder ausschalten. Während einer Jagd schützt dich nur ein Versteck mit ausgeschalteter Taschenlampe.</div>',[
+   ['🔦 Taschenlampe '+(S.light?'ausschalten':'einschalten'),function(){
+    if(!has('Taschenlampe')){toast('Du hast noch keine Taschenlampe.');return;}
+    if(!S.light&&S.battery<=0){toast('Keine Batterie.');return;}
+    toggleLight();showHiding();
+   }],
+   ['🚪 Versteck verlassen',function(){if(chaseTestRemaining!==null){chaseCaught('early');return;}activeHidingPlace=null;returnFn();}]
+  ],room);
+ }
+ showHiding();
+}
 function bedroomBed(){
- render('UNTER DEM BETT',
- '<p>Der Boden ist mit Holzspänen übersät. Zwischen ihnen liegen alte Schleifspuren, die bis zur Tür reichen.</p>'+
- '<p>Du könntest dich hier vor etwas verstecken. Noch ist es still.</p>',
- [['⬅ Zurück',bedroom]],'Schlafzimmer');
+ if(activeHidingPlace==='bett')return enterHiding('bett','UNTER DEM BETT','<p>Du liegst reglos zwischen Staub und Holzspänen. Über dir knarrt das Bettgestell.</p>',bedroom,'Schlafzimmer');
+ render('UNTER DEM BETT','<p>Der Boden ist mit Holzspänen übersät. Zwischen ihnen liegen alte Schleifspuren, die bis zur Tür reichen.</p><p>Hier ist Platz, um dich unter das Bett zu schieben.</p>',[
+ ['🛏️ Unter dem Bett verstecken',function(){enterHiding('bett','UNTER DEM BETT','<p>Du liegst reglos zwischen Staub und Holzspänen. Über dir knarrt das Bettgestell.</p>',bedroom,'Schlafzimmer');}],
+ ['⬅ Zurück',bedroom]],'Schlafzimmer');
 }
 function bedroomWardrobe(){
- render('DER KLEIDERSCHRANK',
- '<p>Hinter den schweren Mänteln ist Platz für einen Menschen. Von innen lässt sich die Tür fast lautlos schließen.</p>'+
- '<p>Ein mögliches Versteck – wenn du die Taschenlampe ausschaltest.</p>',
- [['⬅ Zurück',bedroom]],'Schlafzimmer');
+ render('DER KLEIDERSCHRANK','<p>Hinter den schweren Mänteln ist Platz für einen Menschen. Von innen lässt sich die Tür fast lautlos schließen.</p>',[
+ ['🚪 Im Kleiderschrank verstecken',function(){enterHiding('kleiderschrank','IM KLEIDERSCHRANK','<p>Die Mäntel streifen dein Gesicht. Durch den Türspalt siehst du das dunkle Schlafzimmer.</p>',bedroom,'Schlafzimmer');}],
+ ['⬅ Zurück',bedroom]],'Schlafzimmer');
 }
 function bathroom(){
  render('DAS BADEZIMMER',
- '<p>Die Fliesen sind kalt. In einer alten Badewanne steht dunkles, unbewegtes Wasser. Ein schwerer Vorhang hängt bis zum Boden.</p>'+
- '<p>Aus dem Wasserhahn fällt ein einzelner Tropfen. Danach ist es wieder still.</p>',
- [['🛁 Die Badewanne untersuchen',bathTub],
-  ['🧺 Den Wäscheschrank öffnen',bathLinen],
-  ['🪞 Den beschlagenen Spiegel betrachten',bathMirror],
-  ['⬅ Zurück in den Flur',hall]],'Badezimmer');
+ '<p>Die Fliesen sind kalt. In einer alten Badewanne steht dunkles, unbewegtes Wasser. Ein schwerer Vorhang hängt bis zum Boden.</p><p>Aus dem Wasserhahn fällt ein einzelner Tropfen. Danach ist es wieder still.</p>',
+ [['🛁 Die Badewanne untersuchen',bathTub],['🧺 Den Wäscheschrank öffnen',bathLinen],['🪞 Den beschlagenen Spiegel betrachten',bathMirror],['⬅ Zurück in den Flur',hall]],'Badezimmer');
 }
 function bathTub(){
- render('DIE BADEWANNE',
- '<p>Hinter dem Vorhang ist genug Platz, um sich tief in die Wanne zu ducken. Der Stoff lässt kaum Licht hindurch.</p>'+
- '<p>Ein geeignetes Versteck – sofern deine Taschenlampe aus ist.</p>',
- [['⬅ Zurück',bathroom]],'Badezimmer');
+ render('DIE BADEWANNE','<p>Hinter dem Vorhang ist genug Platz, um dich tief in die Wanne zu ducken. Der Stoff lässt kaum Licht hindurch.</p>',[
+ ['🛁 In der Badewanne verstecken',function(){enterHiding('badewanne','IN DER BADEWANNE','<p>Du hockst im kalten Wasser. Der schwere Vorhang verdeckt dich vollständig.</p>',bathroom,'Badezimmer');}],
+ ['⬅ Zurück',bathroom]],'Badezimmer');
 }
 function bathLinen(){
- render('DER WÄSCHESCHRANK',
- '<p>Zwischen muffigen Laken ist eine schmale Nische. Sie ist gerade groß genug, um sich hineinzuzwängen.</p>',
- [['⬅ Zurück',bathroom]],'Badezimmer');
+ render('DER WÄSCHESCHRANK','<p>Zwischen muffigen Laken ist eine schmale Nische. Sie ist gerade groß genug, um dich hineinzuzwängen.</p>',[
+ ['🧺 Im Wäscheschrank verstecken',function(){enterHiding('waescheschrank','IM WÄSCHESCHRANK','<p>Die Tür fällt leise ins Schloss. Du sitzt eingeklemmt zwischen staubigen Laken.</p>',bathroom,'Badezimmer');}],
+ ['⬅ Zurück',bathroom]],'Badezimmer');
 }
 function bathMirror(){
  render('DER BADEZIMMERSPIEGEL',
@@ -1200,7 +1368,10 @@ function stageWhisper(){
  }catch(e){console.warn(e);toast('Ritualaufnahme konnte nicht abgespielt werden.')}
 }
 function stageRoom(){
- if(!stageEntered){
+ // Automatisch nur beim ersten Bühnenbesuch pro Spieldurchlauf.
+ // Danach kann der Spieler den Ritualtext über die vorhandene Schaltfläche erneut anhören.
+ if(S.room!=='Bühne'&&!S.flags.ritualWhisperVisited){
+  S.flags.ritualWhisperVisited=true;
   stageEntered=true;
   if(stageWhisperTimer)clearTimeout(stageWhisperTimer);
   // Der Klick auf „Zur Bühne“ gibt dem Browser eine Nutzeraktion.
@@ -1262,8 +1433,19 @@ function stageWiring(){
    var select=document.getElementById('wire'+n), result=document.getElementById('wireResult'+n),val=select.value;
    if(!val){result.textContent='Bitte eine Buchse wählen';result.style.color='#f0c580';return}
    if(val!==S.variant.stageMap[idx]){
-    S.wrong++;S.panic=Math.min(5,S.panic+1);S.time=Math.max(0,S.time-timePenalty(20));
-    result.textContent='Falsch ✗ – die Puppe schreit!';result.style.color='#ff9292';stageAudio('wrong');return;
+    // Zeitstrafen für falsche Ritualverbindungen: 30 s, 60 s, danach immer 120 s.
+    S.stageMistakes=(S.stageMistakes||0)+1;
+    var ritualPenalty=S.stageMistakes===1?30:S.stageMistakes===2?60:120;
+    S.wrong++;S.panic=Math.min(5,S.panic+1);
+    S.time=Math.max(0,S.time-ritualPenalty);
+    result.textContent='Falsch ✗ – die Puppe schreit! −'+ritualPenalty+' Sekunden (Fehler '+S.stageMistakes+'). Die Fäden fordern ihren Preis …';
+    result.style.color='#ff9292';
+    stageAudio('wrong');
+    updateHudOnly();
+    if(S.time<=0){
+     end("ZEIT ABGELAUFEN","Im Dunkeln öffnet sich eine Tür. Etwas flüstert: <strong>„Jetzt bleibst du.“</strong>");
+    }
+    return;
    }
    S.stageConnections[idx]=true;select.disabled=true;
    document.getElementById('wireCheck'+n).disabled=true;
@@ -1309,13 +1491,21 @@ function stageSeventh(){
  ['✋ Den Faden nicht berühren',stageRoom],['⬅ Zurück in den Flur',hall]],'Bühne');
 }
 
+/* TESTSCHRITT 3: Archivversteck hinter einem Aktenschrank. */
+function archiveCabinetHide(){
+ render('HINTER DEM AKTENSCHRANK','<p>Ein hoher, schwerer Aktenschrank steht schief vor der Wand. Dahinter bleibt ein schmaler, staubiger Spalt.</p>',[
+  ['🗄️ Hinter dem Aktenschrank verstecken',function(){enterHiding('archiv_aktenschrank','HINTER DEM AKTENSCHRANK','<p>Du presst dich zwischen kaltes Metall und Mauerwerk. Durch die Regalreihen siehst du nur einen schmalen Streifen des Archivs.</p>',archive,'Archiv');}],
+  ['⬅ Zurück',archive]
+ ],'Archiv');
+}
 /* ARCHIVE */
 function archive(){stopDaisy();
  render("DAS ARCHIV",
- 'Metallregale voller Akten. Ein vergilbter Bericht nennt Romina und Silas Voss: Beide führten die Rituale gemeinsam durch. Seit der siebten Vorstellung sind sie verschwunden. Eine Schublade enthält eine Batterie.<br><br>Eine dritte Uhr ist in einen Aktenschrank eingelassen. Die Beschriftungen der Archivschubladen sind kaum noch zu lesen.<br><br>Auf dem Boden liegt ein Stück eines zerrissenen Fotos.',
+ 'Metallregale voller Akten. Ein vergilbter Bericht nennt Romina und Silas Voss: Beide führten die Rituale gemeinsam durch. Seit der siebten Vorstellung sind sie verschwunden. Eine Schublade enthält eine Batterie.<br><br>Eine dritte Uhr ist in einen Aktenschrank eingelassen. Die Beschriftungen der Archivschubladen sind kaum noch zu lesen.<br><br>Auf dem Boden liegt ein Stück eines zerrissenen Fotos. Hinter einem hohen Aktenschrank ist ein schmaler Spalt.',
  [
   ["🔋 Batterie nehmen",()=>{battery("archiv");archive()},S.flags["battery_archiv"]],
   ["🗄️ Aktenschrank untersuchen",clockC],
+  ["👁️ Hinter den Aktenschrank schauen",archiveCabinetHide],
   ["📦 Verstaubtes Kästchen zwischen den Akten",memoryBox],
   ["🗃️ Alte Archivschubladen durchsuchen",archiveDrawers],
   ["🧩 Fragment neben Akte 47 nehmen",()=>piece(3,fragMotif(3),archive)],
@@ -1384,16 +1574,31 @@ function archive47Contents(){
   ],"Archiv");
 }
 
+/* KIDS — TESTSCHRITT 2: zwei neue Verstecke, noch ohne Jagdregeln. */
+function kidsCurtain(){
+ render('HINTER DEM VORHANG','<p>Ein schwerer, staubiger Vorhang hängt vor dem Kinderzimmerfenster. Dahinter ist gerade genug Platz, um stillzustehen.</p>',[
+  ['🪟 Hinter dem Vorhang verstecken',function(){enterHiding('kinder_vorhang','HINTER DEM VORHANG','<p>Der Stoff streift deine Wange. Durch einen schmalen Spalt kannst du das Kinderzimmer beobachten. Der Vorhang bewegt sich kaum merklich.</p>',kids,'Kinderzimmer');}],
+  ['⬅ Zurück',kids]
+ ],'Kinderzimmer');
+}
+function kidsPlushPile(){
+ render('DER KUSCHELTIERHAUFEN','<p>In der Ecke türmen sich alte, verstaubte Kuscheltiere. Zwischen ausgefransten Stoffkörpern ist eine dunkle Mulde.</p>',[
+  ['🧸 Zwischen den Kuscheltieren verstecken',function(){enterHiding('kinder_kuscheltiere','ZWISCHEN DEN KUSCHELTIEREN','<p>Du versinkst zwischen Stoff, Staub und kalten Knopfaugen. Ein alter Plüschhase kippt langsam gegen deine Schulter.</p>',kids,'Kinderzimmer');}],
+  ['⬅ Zurück',kids]
+ ],'Kinderzimmer');
+}
 /* KIDS */
 function kids(){
  scheduleKidsSound();
  render("DAS KINDERZIMMER",
- 'Verblasste Tapete. Ein leeres Bett. An der Wand steht in Rominas Schrift: „Ich gab ihnen Gesichter. Silas gab ihnen Stimmen. Wir wussten, was wir taten.“ Drei Bilder hängen schief.<br><br>Unter dem Bett glitzert etwas.<br><br>Eine Spieluhr spielt vier Töne in Endlosschleife.',
+ 'Verblasste Tapete. Ein leeres Bett. An der Wand steht in Rominas Schrift: „Ich gab ihnen Gesichter. Silas gab ihnen Stimmen. Wir wussten, was wir taten.“ Drei Bilder hängen schief.<br><br>Unter dem Bett glitzert etwas.<br><br>Eine Spieluhr spielt vier Töne in Endlosschleife.<br><br>Vor dem Fenster hängt ein schwerer Vorhang. In der Ecke liegt ein Haufen alter Kuscheltiere.',
  [
   ["🧸 Teddy unter dem Bett ansehen",()=>piece(1,fragMotif(1),kids)],
   ["🖼️ Die drei Bilder ansehen",kidsPictures],
   ["🔍 Spieluhrgehäuse genauer betrachten",musicBoxClue],
   ["🎵 Spieluhr untersuchen",musicBox],
+  ["🪟 Vorhang am Fenster untersuchen",kidsCurtain],
+  ["🧸 Alten Kuscheltierhaufen untersuchen",kidsPlushPile],
   ["🔋 Batterie aus dem Schrank nehmen",()=>{battery("kinderzimmer");kids()},S.flags["battery_kinderzimmer"]],
   ["⬅ Flur",hall]
  ],"Kinderzimmer",true)
@@ -1421,25 +1626,26 @@ function musicBox(){
  ov.classList.add('on');
  var previousMusicVolume=music.volume;
  music.volume=0; // Daisy Bell + echte Flüsterstimmen sind allein zu hören.
- daisy.pause();daisy.currentTime=0;daisy.volume=.10;
+ daisy.pause();daisy.currentTime=0;daisy.volume=.16;
  var done=false,scared=false,ending=false,lastCue=-1,escapeVoice=null,escapeTimer=null;
  // Drei separate Stereo-Flüsterclips: links, rechts, hinter dem Spieler.
  var boxWhispers=['links','rechts','hinten'].map(function(dir){var audio=new Audio('romina-spieluhr-'+dir+'.mp3');audio.volume=.65;return audio;});
 var boxWhisperTimers=[],whisperStarted=false,whisperIndex=0,whisperFinished=false,pendingSongEnd=false;
  function startBoxWhisper(){
-  if(done||ending||whisperStarted||!S.sound)return;
+  if(done||ending||whisperStarted)return;
   whisperStarted=true;whisperIndex=0;
   // Verkettete Wiedergabe statt starrer 7,5-Sekunden-Timer.
   // Der letzte Satz wird vor dem Liedende abgespielt.
   function nextWhisper(){
-   if(done||!S.sound||whisperIndex>=boxWhispers.length)return;
-   var audio=boxWhispers[whisperIndex++];audio.currentTime=0;
+   if(done||ending||whisperIndex>=boxWhispers.length)return;
+   var audio=boxWhispers[whisperIndex++];audio.currentTime=0;daisy.volume=.055;
    audio.onended=function(){
     if(whisperIndex<boxWhispers.length){
      boxWhisperTimers.push(setTimeout(nextWhisper,800));
     }else{whisperFinished=true;if(pendingSongEnd)completeSongEnd();}
    };
-   audio.play().catch(function(){status.textContent='Rominas Flüstern konnte nicht abgespielt werden.';});
+   audio.onerror=function(){console.warn('Spieluhr-Flüsterdatei konnte nicht geladen werden:',audio.src);status.textContent='Flüsterdatei konnte nicht geladen werden: '+audio.src.split('/').pop();boxWhisperTimers.push(setTimeout(nextWhisper,300));};
+   audio.play().catch(function(e){status.textContent='Rominas Flüstern konnte nicht abgespielt werden: '+audio.src.split('/').pop();console.warn(e);boxWhisperTimers.push(setTimeout(nextWhisper,300));});
   }
   boxWhisperTimers.push(setTimeout(nextWhisper,500));
  }
@@ -1489,7 +1695,7 @@ var boxWhisperTimers=[],whisperStarted=false,whisperIndex=0,whisperFinished=fals
   status.textContent='Die Melodie verstummt … Romina flüstert noch.';
   if(!whisperStarted)startBoxWhisper();
   // Nur technische Notbremse bei fehlerhaften Audio-Dateien.
-  boxWhisperTimers.push(setTimeout(completeSongEnd,25000));
+  boxWhisperTimers.push(setTimeout(function(){if(!whisperFinished){status.textContent='Rominas Flüstern wird noch abgespielt …';}},25000));
  }
  function onAudioError(){
   if(done)return;
@@ -1548,15 +1754,23 @@ var boxWhisperTimers=[],whisperStarted=false,whisperIndex=0,whisperFinished=fals
  });
 }
 
+/* TESTSCHRITT 3: Kellerversteck in einer alten Truhe. */
+function basementChestHide(){
+ render('DIE ALTE TRUHE','<p>In einer Kellerecke steht eine große Holztruhe mit rostigen Beschlägen. Der Deckel lässt sich vorsichtig anheben. Innen riecht es nach feuchtem Holz.</p>',[
+  ['📦 In die Truhe kriechen',function(){enterHiding('keller_truhe','IN DER ALTEN TRUHE','<p>Der Deckel sinkt über dir herab. Zwischen den Holzlatten dringt ein dünner Lichtstreifen hindurch. Jeder Atemzug klingt hier viel zu laut.</p>',basement,'Keller');}],
+  ['⬅ Zurück',basement]
+ ],'Keller');
+}
 /* BASEMENT */
 function basement(){stopDaisy();
  render("DER KELLER",
  (S.light?'Deine Taschenlampe flackert.':'Fast völlige Dunkelheit.')+
- '<br><br>Eine vierte Uhr liegt zerbrochen am Boden. An einem verrosteten Werkzeugkasten klebt ein halb abgerissenes Etikett.<br><br>Daneben: ein Sicherungskasten, ein roter Scanner und ein weiteres Fotofragment.<br><br>Hinter den Rohren hörst du langsames Atmen.',
+ '<br><br>Eine vierte Uhr liegt zerbrochen am Boden. An einem verrosteten Werkzeugkasten klebt ein halb abgerissenes Etikett.<br><br>Daneben: ein Sicherungskasten, ein roter Scanner und ein weiteres Fotofragment.<br><br>Hinter den Rohren hörst du langsames Atmen. In der Ecke steht eine alte Holztruhe.',
  [
   ["🔦 Taschenlampe an/aus",()=>{toggleLight();basement()}],
   ["🔎 Glasscherben untersuchen",clockD],
   ["🧰 Werkzeugkasten untersuchen",basementTools],
+  ["📦 Alte Holztruhe untersuchen",basementChestHide],
   ["🧱 Lose Mauerplatte untersuchen",cellarElixir],
   ["🧩 Fragment bei den Rohren nehmen",()=>piece(5,fragMotif(5),basement)],
   ["⚡ Sicherungskasten",fuseBox],
@@ -1697,6 +1911,7 @@ var puppeteerFirstAudio=null;
 function firstPuppeteerEncounter(){
  if(S.flags.puppeteerFirstEncounter){portraitAftermath();return;}
  S.flags.puppeteerFirstEncounter=true;
+ chaseLastAt=Date.now();
  S.locked=true;
  if(rominaPhraseAudio&&!rominaPhraseAudio.paused)rominaPhraseAudio.pause();
  var panel=document.getElementById('puppeteerEncounter'),button=document.getElementById('puppeteerEncounterContinue');
@@ -1799,41 +2014,25 @@ function piece(n,motif,back){
 }
 function puzzleBoard(){
  if(S.flags.pictureSolved){portraitAftermath();return}
- app.innerHTML=top()+'<div class="story"><h2>DER LEERE BILDERRAHMEN</h2>'+
- '<p>Sechs Vertiefungen sind mit <strong>1 bis 6</strong> nummeriert.</p>'+
- '<p class="muted">Der Rahmen verrät dir nichts über das, was du bereits gefunden hast.</p>'+
- '<div class="portrait"><img src="romina-silas-vor-dem-verschwinden.jpg" alt="Verblasstes Bild von Romina und Silas hinter sechs fehlenden Fragmenten" style="width:100%;height:100%;object-fit:cover;filter:grayscale(.9) brightness(.4) blur(5px)"><div class="portraitGrid">'+Array(6).fill('<span></span>').join('')+'</div></div>'+
- '<div id="fragmentInputs">'+
- [1,2,3,4,5,6].map(function(n){
-   return '<label style="display:block;margin:10px 0"><strong>Fragment '+n+'</strong>'+
-   '<input id="frag'+n+'" autocomplete="off" placeholder="..."></label>';
- }).join("")+
- '</div>'+
- '<button class="primary" id="checkFragments">BILD PRÜFEN</button>'+
+ var motifs=[1,2,3,4,5,6].map(function(n){return fragMotif(n)}).sort(function(a,b){return a.localeCompare(b,'de')});
+ app.innerHTML=top()+'<div class="story"><h2>DER LEERE BILDERRAHMEN</h2>'+ 
+ '<p>Sechs Vertiefungen sind mit <strong>1 bis 6</strong> nummeriert. Ordne jedem Zeichen seine richtige Position zu.</p>'+ 
+ '<p class="muted">Die Nummern findest du auf den Rückseiten der sechs Fragmente. Jede Zahl darf nur einmal verwendet werden.</p>'+ 
+ '<div class="portrait"><img src="romina-silas-vor-dem-verschwinden.jpg" alt="Verblasstes Bild von Romina und Silas hinter sechs fehlenden Fragmenten" style="width:100%;height:100%;object-fit:cover;filter:grayscale(.9) brightness(.4) blur(5px)"><div class="portraitGrid">'+Array(6).fill('<span></span>').join('')+'</div></div>'+ 
+ '<div id="fragmentInputs">'+motifs.map(function(motif,i){
+   return '<label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0"><strong>'+motif+'</strong><select id="fragPosition'+i+'" aria-label="Position für '+motif+'" style="min-width:100px;padding:8px"><option value="">Zahl …</option>'+[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'">'+n+'</option>'}).join('')+'</select></label>';
+ }).join('')+'</div>'+ 
+ '<button class="primary" id="checkFragments">BILD ZUSAMMENSETZEN</button>'+ 
  '<button id="leaveFragments">Zurück</button></div>';
-
- document.getElementById("checkFragments").onclick=function(){
-   if(S.pieces.length<6){
-     wrong();
-     return;
-   }
-   var expected=[1,2,3,4,5,6].map(function(n){
-     return fragMotif(n).toLowerCase()
-       .replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss")
-       .replace(/[^a-z0-9]/g,"");
-   });
-   var ok=true;
-   for(var i=1;i<=6;i++){
-     var a=document.getElementById("frag"+i).value.toLowerCase();
-     a=a.replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z0-9]/g,"");
-     if(a!==expected[i-1])ok=false;
-   }
-   if(ok){
-     mark("pictureSolved");add("Zusammengesetztes Foto");
-     portraitReveal();
-   }else wrong();
+ document.getElementById('checkFragments').onclick=function(){
+   if(S.pieces.length<6){toast('Du brauchst erst alle sechs Bildfragmente.');return}
+   var chosen=motifs.map(function(_,i){return Number(document.getElementById('fragPosition'+i).value)});
+   if(chosen.some(function(n){return !n}) || new Set(chosen).size!==6){toast('Ordne jedem Zeichen eine andere Zahl von 1 bis 6 zu.');return}
+   var ok=motifs.every(function(motif,i){return fragMotif(chosen[i])===motif});
+   if(ok){mark('pictureSolved');add('Zusammengesetztes Foto');portraitReveal()}
+   else wrong();
  };
- document.getElementById("leaveFragments").onclick=startRoom;
+ document.getElementById('leaveFragments').onclick=startRoom;
 }
 
 
