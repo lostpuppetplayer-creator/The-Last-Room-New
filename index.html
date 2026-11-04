@@ -866,7 +866,7 @@ function desk(){maybeDrawerSpider('Startkammer');render('DER ALTE SCHREIBTISCH',
  ['⬅ Schublade schließen',startRoom]],'Startkammer')}
 function hallBoard(){render('DIE LOSE BODENLEISTE','Zwischen Staub und Splittern steckt ein zusammengefaltetes Bündel. Daneben liegt eine verrostete Haarnadel.',[
  ['📖 Papierbündel öffnen',()=>render('SILAS’ AUFZEICHNUNGEN','Die meisten Seiten sind voller durchgestrichener Namen und unleserlicher Formeln. Zwischen ihnen steckt eine Seite: <em>„Erste Beschwörung: PLACE_CLOCK_1. Romina hielt die Fäden. Ich sprach die Worte.“</em>',[['⬅ Zur Bodenleiste',hallBoard]],'Flur')],
- ['🔩 Haarnadel untersuchen',()=>render('VERROSTETE HAARNADEL','Ein dünnes Stück Metall, das schon lange hier liegt. Es gehört zu keiner der Puppen.',[['⬅ Zur Bodenleiste',hallBoard]],'Flur')],
+ ['🔩 Haarnadel '+(has('Verrostete Haarnadel')?'ansehen':'aufheben'),()=>{if(!has('Verrostete Haarnadel'))add('Verrostete Haarnadel');render('VERROSTETE HAARNADEL','Du hast die Haarnadel eingesteckt. Das dünne Metall ist verbogen, aber noch stabil. Vielleicht lässt sich damit später ein kleines Schloss öffnen.',[['⬅ Zur Bodenleiste',hallBoard]],'Flur')}],
  ['⬅ Zurück',hall]],'Flur')}
 function archiveDrawers(){maybeDrawerSpider('Archiv');render('ARCHIVSCHUBLADEN','Einige Schubladen sind leer. Andere sind bis zum Rand mit beschädigten Akten gefüllt.',[
  ['📁 Theaterabrechnungen prüfen',()=>render('THEATERABRECHNUNGEN','Sechs Vorstellungen sind abgerechnet. Bei der siebten ist die Spalte für die Einnahmen leer.',[['⬅ Schubladen',archiveDrawers]],'Archiv')],
@@ -887,6 +887,7 @@ function startRoom(){stopDaisy();
   ["🕰️ Standuhr ansehen",clockA],
   ["🗄️ Schreibtisch untersuchen",desk],
   ["🖼️ Leeren Bilderrahmen untersuchen",()=>{if(S.pieces.indexOf(2)<0)piece(2,fragMotif(2),startRoom);else puzzleBoard()}],
+  ["🚪 Eingangstür untersuchen",entranceDoor],
   ["🚪 In den Flur",hall]
  ],"Startkammer",true)
 }
@@ -1000,6 +1001,7 @@ function hall(){stopDaisy();
   ["🪞 Spiegelsaal",mirrorRoom],
   ["🛏️ Schlafzimmer von Romina und Silas",bedroom],
   ["🛁 Altes Badezimmer",bathroom],
+  ["🪡 Verschlossene Puppenwerkstatt",puppetWorkshop],
   ["🎭 Zur verlassenen Bühne",stageRoom],
   ["↩️ Zurück in die Startkammer",startRoom]
  ],"Flur",true)
@@ -1153,6 +1155,10 @@ function checkBedroomLetter(){
 // PUPPETEER-JAGD: erste Begegnung bleibt eine geskriptete Warnung ohne Tod.
 var chaseTestRemaining=null,chaseTestInterval=null,chaseVoice=null,chaseVoiceTimer=null;
 var chaseStartedAt=0,chaseLastAt=0,chaseLastRoom='',chaseVoiceOrder=[];
+// Nächste reguläre Jagd frühestens fünf Minuten nach der letzten; zusätzlich zufällige Wartezeit.
+var chaseNextAllowedAt=0;
+function chaseScheduleNext(){chaseNextAllowedAt=Date.now()+300000+Math.floor(Math.random()*180001);}
+function chaseReady(){if(!chaseNextAllowedAt){chaseScheduleNext();return false;}return Date.now()>=chaseNextAllowedAt;}
 var chaseFootsteps=null,chaseFootstepTimer=null,chasePuppetRoom='',chaseAutoTimer=null;
 var chaseHiddenSafeSince=0;
 var chaseVisibleUntil=0;
@@ -1194,7 +1200,7 @@ function chaseStopVoice(){
 }
 function chaseTestStop(message){
  if(chaseTestInterval){clearInterval(chaseTestInterval);chaseTestInterval=null;}
- if(chaseTestRemaining!==null)chaseLastAt=Date.now();
+ if(chaseTestRemaining!==null){chaseLastAt=Date.now();chaseScheduleNext();}
  chaseTestRemaining=null;chasePhase='idle';chasePhaseUntil=0;chaseHiddenSafeSince=0;chaseVisibleUntil=0;chaseStopVoice();chaseStopFootsteps();
  var display=document.getElementById('chaseTestDisplay');if(display)display.remove();
  if(message)toast(message);
@@ -1304,6 +1310,7 @@ function chaseCaught(reason){
  a.play().catch(function(){});
 }
 function chaseTestStart(){
+ if(!chaseReady())return;
  if(S.ended||S.locked||activeHidingPlace||!S.flags.puppeteerFirstEncounter){
   toast('Die Jagd beginnt erst nach Puppeteers erster Warnung und außerhalb eines Verstecks.');return;
  }
@@ -1367,15 +1374,15 @@ function chaseTestStart(){
 function chaseMaybeStart(oldRoom,newRoom){
  if(chaseTestRemaining!==null||activeHidingPlace||S.ended||S.locked||!S.flags.puppeteerFirstEncounter)return;
  if(oldRoom===newRoom||newRoom==='Startkammer'||newRoom==='Start'||newRoom==='Schwarze Tür')return;
- // Nach der ersten Warnung kurze Schonfrist; nach jeder Jagd 75 Sekunden Pause.
- if(Date.now()-chaseLastAt<75000)return;
+ // Fünf bis acht Minuten Schonfrist, auch bei Raumwechseln.
+ if(!chaseReady())return;
  if(Math.random()<.35)chaseTestStart();
 }
 // Jagden starten auch ohne Raumwechsel automatisch nach der ersten Warnung.
 chaseAutoTimer=setInterval(function(){
  if(!S.flags.puppeteerFirstEncounter||S.ended||S.locked||document.hidden||activeHidingPlace||chaseTestRemaining!==null)return;
  if(S.room==='Startkammer'||S.room==='Start'||S.room==='Schwarze Tür')return;
- if(Date.now()-chaseLastAt<75000)return;
+ if(!chaseReady())return;
  if(Math.random()<.32)chaseTestStart();
 },5000);
 var activeHidingPlace=null;
@@ -1665,7 +1672,7 @@ function mirrorPoemSolve(){
  if(S.flags.mirrorPhotoDropped)return mirrorPhotoReveal();
  ask("DAS GEDICHT ENTSCHLÜSSELN",
  "Was ist das erste Wort des verständlichen Gedichts? Du kannst es selbst herausfinden oder im Archiv für 10 Blut entschlüsseln.",
- ["asche"],mirrorPhotoReveal,blackMirror);
+ ["asche"],mirrorMemoryPuzzle,blackMirror);
 }
 function archive47Contents(){
  mark("archiveOpen");
@@ -1679,18 +1686,57 @@ function archive47Contents(){
   'Die erste Puppe hatte zu atmen begonnen.<br><br><em>Romina und Silas — gemeinsam unterzeichnet</em></div>'+
   (S.flags.loopKeyTaken
     ? '<p>Das kleine Schlüsselfach ist leer. Die Aufzeichnungen über das erste Ritual bleiben hier.</p>'
-    : '<p>Zwischen den letzten Seiten steckt ein alter <strong>Schlüssel mit der Zahl I</strong>. Eine Randnotiz lautet: <em>„Die erste Tür führt immer zum Anfang.“</em></p>'),
+    : '<p>Zwischen den letzten Seiten steckt ein alter <strong>Schlüssel mit der Zahl II</strong>. Eine Randnotiz lautet: <em>„Die Tür war niemals verschlossen, um uns drinnen zu halten.“</em></p>'),
   [
-   ["🗝️ Schlüssel I aus Akte 47 nehmen",function(){
-      if(!S.flags.loopKeyTaken){mark("loopKeyTaken");add("Schlüssel I")}
-      render("SCHLÜSSEL I","Ein schwerer Schlüssel mit der römischen Ziffer I. Auf dem Griff steht: <em>„Im Loop gefangen“</em>.",
-       [["🚪 Zu den drei Türen",function(){S.room="Flur";escapeDoors()}],["⬅ Zur Akte",archive47Contents]],"Archiv");
+   ["🗝️ Schlüssel II aus Akte 47 nehmen",function(){
+      if(!S.flags.loopKeyTaken){mark("loopKeyTaken");add("Schlüssel II")}
+      render("SCHLÜSSEL II","Ein schwerer Schlüssel mit der römischen Ziffer II. Er passt zur Eingangstür des Hauses.",
+       [["🚪 Zur Eingangstür",function(){S.room="Startkammer";entranceDoor()}],["⬅ Zur Akte",archive47Contents]],"Archiv");
     },!!S.flags.loopKeyTaken],
    ["🚪 Zu den drei Fluchttüren",function(){S.room="Flur";escapeDoors()}],
    ["⬅ Archiv",archive]
   ],"Archiv");
 }
 
+/* WERKSTATT – TESTSCHRITT 1: Erste Puppe und Zugang, noch keine Schluesselfertigung. */
+function rominasFirstDoll(){
+ var taken=!!S.flags.rominaWorkshopKey;
+ render('ROMINAS ERSTE PUPPE',
+  '<p>Hinter den Kuscheltieren sitzt eine kleine, von Hand gefertigte Puppe. Ihr Kleid ist sorgfaeltig genaeht, doch das Porzellangesicht zeigt feine Risse.</p>'+
+  '<p>Ein verblasstes Etikett traegt die Worte: <em>„Meine Erste. Sie darf niemals verloren gehen. – R.“</em></p>'+
+  (taken?'<p>Die verborgene Naht ist offen. Das Schluesselfach ist leer.</p>':'<p>Unter dem Kleid fuehlst du eine ungewoehnlich harte Stelle. Eine Naht ist mit dunklem Faden verschlossen.</p>'),
+  [
+   ['🪡 Versteckte Naht vorsichtig oeffnen',function(){
+     if(!S.flags.rominaWorkshopKey){mark('rominaWorkshopKey');add('Werkstattschluessel')}
+     render('DAS GEHEIMNIS DER ERSTEN PUPPE','<p>Zwischen Stoff und Holz steckt ein kleiner, schwerer Schluessel. Auf seinem Bart ist eine winzige Marionette eingraviert.</p><p>Du steckst den <strong>Werkstattschluessel</strong> ein. Die Puppe bleibt zurueck.</p>',[['🧸 Zur Puppe',rominasFirstDoll],['⬅ Kinderzimmer',kids]],'Kinderzimmer');
+   },taken],
+   ['⬅ Zurueck ins Kinderzimmer',kids]
+  ],'Kinderzimmer');
+}
+function puppetWorkshop(){
+ if(!S.flags.rominaWorkshopKey&&!has('Werkstattschluessel')){
+  return render('DIE VERSCHLOSSENE WERKSTATT','<p>Hinter der schmalen Tuer liegt Rominas alte Werkstatt. Das Schloss zeigt eine kleine eingravierte Marionette. Ohne passenden Schluessel bleibt die Tuer verschlossen.</p>',[['⬅ Flur',hall]],'Flur');
+ }
+ render('DIE WERKSTATT DER PUPPENSPIELERIN',
+  '<p>Staub tanzt im schwachen Licht. Auf einer langen Werkbank liegen Holzrohlinge, Nadeln, Fadenrollen und stumpfe Werkzeuge. Von der Decke haengen unfertige Marionetten.</p>'+
+  '<p>An der Wand ist eine Zeichnung von <strong>Tür III</strong> befestigt. Darunter steht: <em>„Nicht jeder Schluessel wird gefunden. Manche muessen geschaffen werden.“</em></p>'+
+  '<p>Eine schwere Vorrichtung auf der Werkbank ist noch unvollstaendig. Fuer die Schluesselfertigung fehlen Materialien und eine Anleitung.</p>',
+  [
+   ['🪵 Werkbank untersuchen',workshopBench],
+   ['📜 Rominas Notizen lesen',workshopNotes],
+   ['🎭 Unfertige Marionetten ansehen',workshopPuppets],
+   ['⬅ Zurueck in den Flur',hall]
+  ],'Werkstatt',true);
+}
+function workshopBench(){
+ render('DIE WERKBANK','<p>Eine alte Feile, ein winziger Schraubstock und mehrere Schluesselrohlinge liegen ordentlich nebeneinander. Die Vorrichtung fuer Tür III ist nicht betriebsbereit.</p><p><em>Die Materialsuche und Schluesselfertigung folgen in einer spaeteren Teststufe.</em></p>',[['⬅ Werkstatt',puppetWorkshop]],'Werkstatt');
+}
+function workshopNotes(){
+ render('ROMINAS AUFZEICHNUNGEN','<div class="note">Meine erste Puppe bewahrte den Weg zu meinem liebsten Ort. Hier konnte ich erschaffen, was draussen niemand verstehen wollte.<br><br>Die dritte Tuer verlangt mehr als einen gewoehnlichen Schluessel.</div>',[['⬅ Werkstatt',puppetWorkshop]],'Werkstatt');
+}
+function workshopPuppets(){
+ render('DIE UNFERTIGEN','<p>Sechs halbfertige Puppen haengen an duennen Schnueren. Eine siebte Halterung ist leer. Unter ihr liegt ein abgerissener Faden.</p>',[['⬅ Werkstatt',puppetWorkshop]],'Werkstatt');
+}
 /* KIDS — TESTSCHRITT 2: zwei neue Verstecke, noch ohne Jagdregeln. */
 function kidsCurtain(){
  render('HINTER DEM VORHANG','<p>Ein schwerer, staubiger Vorhang hängt vor dem Kinderzimmerfenster. Dahinter ist gerade genug Platz, um stillzustehen.</p>',[
@@ -1716,6 +1762,7 @@ function kids(){
   ["🎵 Spieluhr untersuchen",musicBox],
   ["🪟 Vorhang am Fenster untersuchen",kidsCurtain],
   ["🧸 Alten Kuscheltierhaufen untersuchen",kidsPlushPile],
+  ["🪆 Eine ungewoehnliche alte Puppe untersuchen",rominasFirstDoll],
   ["🔋 Batterie aus dem Schrank nehmen",()=>{battery("kinderzimmer");kids()},S.flags["battery_kinderzimmer"]],
   ["⬅ Flur",hall]
  ],"Kinderzimmer",true)
@@ -1990,7 +2037,7 @@ function archiveTape(){
   if(decoded){playMirrorPoem(true);return}
   if(S.blood<10){toast("Nicht genug Blut.");return}
   if(!confirm("Für die verständliche Aufnahme einmalig 10 Blut opfern?"))return;
-  S.blood-=10;mark("poemDecoded");if(S.blood<=50)document.body.classList.add("bloodWeak");updateHudOnly();mirrorPhotoReveal();playMirrorPoem(true);
+  S.blood-=10;mark("poemDecoded");if(S.blood<=50)document.body.classList.add("bloodWeak");updateHudOnly();mirrorMemoryPuzzle();playMirrorPoem(true);
  }],
  ["🪞 Zum schwarzen Spiegel zurück",mirrorRoom],
  ["📁 Akte 47 untersuchen",archiveFile],
@@ -2002,24 +2049,48 @@ function escapeDoors(){
  "Drei schwere Türen stehen nebeneinander. In das Holz sind I, II und III geritzt. Die erste Tür trägt eine dunkle, kreisförmige Spur.",
  [
  ["🚪 Tür I untersuchen",function(){
-  if(!has("Schlüssel I"))return render("TÜR I","Ein schmales Schlüsselloch. Die Tür ist verschlossen. Der passende Schlüssel liegt irgendwo in der Vergangenheit dieses Hauses.",[["⬅ Zurück",escapeDoors]],"Flur");
+  if(true)return render("TÜR I","Ein schmales Schlüsselloch. Die Tür ist verschlossen. Der passende Schlüssel liegt irgendwo in der Vergangenheit dieses Hauses.",[["⬅ Zurück",escapeDoors]],"Flur");
   render("TÜR I — DER ANFANG",
-   "Der Schlüssel aus Akte 47 passt. Hinter der Tür ist ein heller Gang zu erkennen. Ein Luftzug riecht nach Staub und altem Holz. Willst du hindurchgehen?",
-   [["🗝️ Tür I aufschließen und hindurchgehen",loopEnding],["⬅ Noch nicht",escapeDoors]],"Flur");
+   "Das Schloss ist alt und verrostet. Dieser Weg ist versiegelt. Der Schlüssel aus Akte 47 gehört zur Eingangstür.",
+   [["⬅ Noch nicht",escapeDoors]],"Flur");
  }],
  ["🚪 Tür II untersuchen",function(){render("TÜR II","Ein anderes Schloss. Dein Schlüssel passt nicht. Dieser Fluchtweg bleibt vorerst versiegelt.",[["⬅ Zurück",escapeDoors]],"Flur")}],
  ["🚪 Tür III untersuchen",function(){render("TÜR III","Auf der anderen Seite ist ein leises Scharren zu hören. Das Schloss lässt sich mit Schlüssel I nicht öffnen.",[["⬅ Zurück",escapeDoors]],"Flur")}],
  ["⬅ Flur",hall]
  ],"Flur");
 }
+
+/* Ende II: Erinnerung, Akte 47 und bewusste Entscheidung an der Eingangstür. */
+function mirrorMemoryPuzzle(){
+ if(S.flags.memorySolved)return mirrorPhotoReveal();
+ if(!S.flags.memoryOrder)S.flags.memoryOrder=[0,1,2].sort(function(){return Math.random()-.5});
+ var memories=[
+  '<strong>Erinnerung A:</strong> „Noch war keine Puppe erwacht. Romina setzte den ersten Stich; Silas zeichnete den Kreis erst danach.“',
+  '<strong>Erinnerung B:</strong> „Der Kreis war bereits gezogen. Zum ersten Mal bewegte sich die fertige Puppe ohne Fäden.“',
+  '<strong>Erinnerung C:</strong> „Nach der ersten Bewegung hörten wir die Stimme hinter der Bühnenwand. Am nächsten Morgen war der Kreis verwischt.“'
+ ];
+ render('DIE ERINNERUNG, DIE ZWEIMAL STARB',
+ '<p>Im schwarzen Glas stehen zwei Gestalten: eine aufrecht, die andere kopfüber.</p><div class="note">Was einmal geschah, wird wieder geschehen. Doch nur eines der Bilder erinnert sich an den Anfang.</div><p>Drei Aufzeichnungen erscheinen in wechselnder Reihenfolge. Welche beschreibt das <strong>erste</strong> Ereignis?</p>'+S.flags.memoryOrder.map(function(n){return '<div class="note">'+memories[n]+'</div>'}).join(''),
+ S.flags.memoryOrder.map(function(n,i){return ['🪞 Aufzeichnung '+(i+1)+' als Anfang wählen',function(){if(n===0){mark('memorySolved');mirrorPhotoReveal()}else{S.sanity=Math.max(0,S.sanity-5);toast('Der Spiegel zeigt eine falsche Erinnerung. −5 Sanity.');mirrorMemoryPuzzle()}}]}).concat([['⬅ Zum schwarzen Spiegel',blackMirror]]),'Spiegelsaal');
+}
+function entranceDoor(){
+ if(!has('Schlüssel II'))return render('DIE EINGANGSTÜR','Das Schloss ist verschlossen. Du spürst kalte Luft auf der anderen Seite. Irgendwo im Haus muss es einen passenden Schlüssel geben.',[['⬅ Zurück',startRoom]],'Startkammer');
+ render('DIE EINGANGSTÜR','Schlüssel II gleitet ins Schloss. Ein leises Klicken. Die Tür schwingt auf. Draußen ist es still. Keine Schritte. Keine Marionetten. Nur die Nacht.<p><em>Was möchtest du tun?</em></p>',[
+ ['🚪 Durch die Tür treten',loopEnding],['⬅ Im Haus bleiben',startRoom]],'Startkammer');
+}
 function loopEnding(){
+ if(S.flags.loopSeen){S.room='Startkammer';return render('DER BEKANNTE WEG','Du kennst diesen Weg bereits. Und doch führt er dich wieder hierher.',[['⬅ Weitersuchen',startRoom]],'Startkammer')}
+ mark('loopSeen');S.locked=true;S.room='Startkammer';
  if(mirrorPoemAudio){mirrorPoemAudio.pause();mirrorPoemAudio.currentTime=0}
- S.locked=false;
- end("IM LOOP GEFANGEN",
-  '<p>Du trittst durch die erste Tür. Der Gang führt ins Freie. Du atmest auf.</p>'+
-  '<p>Doch dann hörst du das vertraute Ticken. Vor dir steht wieder die erste Tür des Puppenhauses.</p>'+
-  '<p>Aus der Dunkelheit flüstert eine Stimme: <em>„Die Vorstellung beginnt von vorn.“</em></p>'+
-  '<h3>ENDE I — IM LOOP GEFANGEN</h3>');
+ if(typeof chaseTestStop==='function')chaseTestStop();
+ music.pause();dark.classList.remove('on');
+ app.innerHTML='<div class="story center"><h2>DIE TÜR ÖFFNET SICH</h2><p>Du trittst über die Schwelle. Zum ersten Mal seit einer Ewigkeit spürst du frische Luft.</p><p>Hinter dir fällt die Tür ins Schloss.</p><p>Ein Schritt. Noch einer.</p><p>Eine Uhr schlägt. Das Licht erlischt.</p><p>Als du die Augen wieder öffnest, stehst du in der Startkammer.</p><p>Auf dem Boden liegt ein Zettel.</p><div class="note">„Willkommen zurück. Wir haben dich vermisst.“</div><button class="primary" id="loopReveal">WEITER</button></div>';
+ document.getElementById('loopReveal').onclick=loopEndingScreen;
+}
+function loopEndingScreen(){
+ app.innerHTML='<div class="kicker">THE LAST ROOM</div><div class="story center"><h1>ENDE II</h1><h2>DER EWIGE KREISLAUF</h2><p>Du bist zurück. Aber deine Erinnerungen sind geblieben.</p></div><div class="grid" id="loopChoices"><button class="primary" id="loopContinue">WEITER – Zurück ins Spiel</button><button id="loopQuit">ENDE – Hauptmenü</button></div><div class="panel center"><strong>DIE GANZE GESCHICHTE</strong><p>Link zum YouTube-Video folgt nach Veröffentlichung.</p></div>';
+ document.getElementById('loopContinue').onclick=function(){S.locked=false;S.room='Startkammer';S.blackoutRemaining=null;startRoom()};
+ document.getElementById('loopQuit').onclick=function(){location.reload()};
 }
 
 
@@ -2029,6 +2100,7 @@ function firstPuppeteerEncounter(){
  if(S.flags.puppeteerFirstEncounter){portraitAftermath();return;}
  S.flags.puppeteerFirstEncounter=true;
  chaseLastAt=Date.now();
+ chaseScheduleNext();
  S.locked=true;
  if(rominaPhraseAudio&&!rominaPhraseAudio.paused)rominaPhraseAudio.pause();
  var panel=document.getElementById('puppeteerEncounter'),button=document.getElementById('puppeteerEncounterContinue');
