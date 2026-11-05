@@ -197,6 +197,17 @@ body.musicBoxActive #dollScare img{content:url("vorhangmann-jumpscare.jpg");filt
 .libraryListening{position:fixed;inset:0;z-index:850;background:radial-gradient(ellipse at center,#211711,#050405 78%);display:none;align-items:center;justify-content:center;padding:24px;color:#e8d9b8;text-align:center}
 .libraryListening.on{display:flex}.libraryBook{max-width:670px;width:100%;border:1px solid #705b39;background:rgba(15,11,10,.93);padding:32px 22px;box-shadow:0 0 65px #000;border-radius:8px}
 .libraryBook h2{font:normal 30px Georgia,serif;color:#dfc58c}.libraryBook p{line-height:1.7}.libraryBook button{margin:10px;padding:10px 18px}.libraryBook progress{width:90%;accent-color:#a88b59}.libraryVersion{font:12px Georgia,serif;letter-spacing:2px;color:#b69b6c;margin:5px 0 12px}.libraryStoryText{height:min(46vh,390px);overflow-y:auto;text-align:left;font:clamp(17px,2vw,22px)/1.85 Georgia,serif;color:#f1e5cf;background:#211a16;padding:18px 22px;margin:18px 0;border-top:1px solid #59452f;border-bottom:1px solid #59452f;scroll-behavior:smooth}.libraryStoryText .libraryUpcoming{opacity:1;color:#e8d9b8}.libraryStoryText .librarySpoken{opacity:1}.libraryStoryText .libraryCurrent{color:#f6dc9f}
+
+/* V23: Eingangstür vor dem Intro und persönliche Schlusszeile */
+#entryDoorScene{position:fixed;inset:0;z-index:650;display:none;align-items:center;justify-content:center;overflow:hidden;background:#050304;perspective:1100px}
+#entryDoorScene.on{display:flex}
+.entryDoorFrame{position:relative;width:min(56vw,350px);height:min(78vh,590px);border:13px solid #25150f;box-shadow:0 0 0 5px #090606,0 0 110px #000,inset 0 0 50px #000;background:radial-gradient(ellipse at center,#29131a,#050304 75%)}
+.entryDoorPanel{position:absolute;inset:0;transform-origin:left center;background:repeating-linear-gradient(90deg,#24140f 0,#392219 17%,#20110e 34%);border:5px ridge #4e3023;box-shadow:inset 0 0 60px #090504;backface-visibility:hidden}
+.entryDoorPanel:before{content:'';position:absolute;inset:8% 13%;border:7px ridge #4c2b1c;box-shadow:inset 0 0 25px #090504}
+.entryDoorPanel:after{content:'';position:absolute;right:9%;top:53%;width:13px;height:13px;border-radius:50%;background:#b18a4b;box-shadow:0 0 8px #c6a36a}
+#entryDoorScene.opening .entryDoorPanel{animation:entryDoorSwing 2.7s ease-in-out forwards}
+@keyframes entryDoorSwing{0%,10%{transform:rotateY(0)}100%{transform:rotateY(-105deg)}}
+#introOverlay .introNameFinal{font:clamp(30px,6vw,60px) Georgia,serif;letter-spacing:.12em;color:#e8cfac;text-shadow:0 0 28px #7c2334}
 </style>
 </head>
 <body>
@@ -206,7 +217,7 @@ body.musicBoxActive #dollScare img{content:url("vorhangmann-jumpscare.jpg");filt
 <audio id="ritualAudio" src="romina-ritualfluestern.mp3" preload="auto"></audio>
 <audio id="music" src="Kellerflur.mp3" loop preload="auto"></audio>
 <audio id="introMusic" src="intro-spieluhr-sanft.mp3" preload="auto" loop></audio><audio id="introNoise" src="intro-rauschen.mp3" preload="auto" loop></audio><audio id="daisy" src="spieluhr-mit-fluestern.mp3" preload="auto"></audio><audio id="introAudio" src="intro-romina.mp3" preload="auto"></audio>
-<div id="introOverlay" role="dialog" aria-label="Einführung"><div class="introInner"><div class="kicker">DIE VORSTELLUNG BEGINNT</div><div id="introLine" class="whisperLine"></div><button id="introSkip">Intro überspringen</button></div></div><div id="musicOverlay" role="dialog" aria-label="Spieluhr"><div class="introInner"><div class="kicker">DU MUSST ZUHÖREN</div><div class="musicDoll">♟</div><h2>DAISY BELL</h2><div id="whisperLine" class="whisperLine"></div><p id="musicStatus" class="muted">Die Walze dreht sich …</p><button id="musicEscape" style="font-size:12px">🩸 Vorzeitig verlassen (30 Blut)</button></div></div><div id="portraitScene" role="dialog" aria-label="Das vollständige Porträt" aria-modal="true"><div class="stageFrame"><img src="romina-silas-vor-dem-verschwinden.jpg" alt="Romina und Silas auf der alten Bühne"><video id="portraitAnimation" src="puppeteer-befreiung.mp4" preload="auto" playsinline style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#080506"></video><div class="faceDark"></div></div><div id="portraitCaption" class="sceneCaption"></div><button id="portraitSceneSkip" aria-label="Animation überspringen">Animation überspringen</button><img class="scareFace" src="vorhangmann-jumpscare.jpg" alt=""></div><div id="puppeteerEncounter" role="dialog" aria-modal="true" aria-label="The Puppeteer stellt sich vor" style="display:none;position:fixed;inset:0;z-index:920;background:radial-gradient(ellipse,#290912,#030204 75%);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;color:#f5dce3"><img src="vorhangmann-jumpscare.jpg" alt="The Puppeteer" style="width:min(55vw,380px);max-height:55vh;object-fit:contain;filter:brightness(.55) contrast(1.3)"><p id="puppeteerEncounterText" style="font:clamp(18px,3vw,30px) Georgia,serif">Ob versteckt oder nicht … ICH KOMME!</p><button id="puppeteerEncounterContinue" style="display:none">Weitergehen</button></div><div id="spiderScene" role="dialog" aria-modal="true" aria-label="Die Spinne"><div class="spiderIntro" id="spiderIntro">Du hebst die staubige Taschenlampe auf …</div><video class="spiderVideo" id="spiderVideo" src="spinnen-jumpscare.mp4" preload="auto" playsinline aria-label="Eine Spinne springt auf dich zu"></video><div class="spiderQuestion">Bist du dir sicher, dass sie nicht mehr auf dir sitzt?</div></div><div id="letterOverlay" role="dialog" aria-modal="true" aria-label="Rominas Brief"><div class="letterPage"><h2>Der letzte Brief</h2><p id="letterText"></p><button id="letterSkip">Brief vollständig anzeigen</button><button id="letterContinue" style="display:none">Brief anheben</button></div></div><audio id="letterAudio" src="rominas-brief.mp3" preload="auto"></audio><div id="libraryListening" class="libraryListening" role="dialog" aria-modal="true" aria-label="Vorlesung im alten Buch"><div class="libraryBook"><div style="font-size:35px">📖</div><div class="libraryVersion">BIBLIOTHEK · V22 · MITLESETEXT</div><h2 id="libraryChapterTitle"></h2><div id="libraryStoryText" class="libraryStoryText" aria-label="Kapiteltext"></div><progress id="libraryProgress" value="0" max="100"></progress><p id="libraryProgressLabel">00:00</p><button id="libraryStopButton">Vorlesung abbrechen</button></div></div><audio id="libraryNarrator" preload="none"></audio><div id="app"></div>
+<div id="entryDoorScene" role="dialog" aria-label="Die Eingangstür öffnet sich"><div class="entryDoorFrame"><div class="entryDoorPanel"></div></div></div><div id="introOverlay" role="dialog" aria-label="Einführung"><div class="introInner"><div class="kicker">DIE VORSTELLUNG BEGINNT</div><div id="introLine" class="whisperLine"></div><button id="introSkip">Intro überspringen</button></div></div><div id="musicOverlay" role="dialog" aria-label="Spieluhr"><div class="introInner"><div class="kicker">DU MUSST ZUHÖREN</div><div class="musicDoll">♟</div><h2>DAISY BELL</h2><div id="whisperLine" class="whisperLine"></div><p id="musicStatus" class="muted">Die Walze dreht sich …</p><button id="musicEscape" style="font-size:12px">🩸 Vorzeitig verlassen (30 Blut)</button></div></div><div id="portraitScene" role="dialog" aria-label="Das vollständige Porträt" aria-modal="true"><div class="stageFrame"><img src="romina-silas-vor-dem-verschwinden.jpg" alt="Romina und Silas auf der alten Bühne"><video id="portraitAnimation" src="puppeteer-befreiung.mp4" preload="auto" playsinline style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#080506"></video><div class="faceDark"></div></div><div id="portraitCaption" class="sceneCaption"></div><button id="portraitSceneSkip" aria-label="Animation überspringen">Animation überspringen</button><img class="scareFace" src="vorhangmann-jumpscare.jpg" alt=""></div><div id="puppeteerEncounter" role="dialog" aria-modal="true" aria-label="The Puppeteer stellt sich vor" style="display:none;position:fixed;inset:0;z-index:920;background:radial-gradient(ellipse,#290912,#030204 75%);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;color:#f5dce3"><img src="vorhangmann-jumpscare.jpg" alt="The Puppeteer" style="width:min(55vw,380px);max-height:55vh;object-fit:contain;filter:brightness(.55) contrast(1.3)"><p id="puppeteerEncounterText" style="font:clamp(18px,3vw,30px) Georgia,serif">Ob versteckt oder nicht … ICH KOMME!</p><button id="puppeteerEncounterContinue" style="display:none">Weitergehen</button></div><div id="spiderScene" role="dialog" aria-modal="true" aria-label="Die Spinne"><div class="spiderIntro" id="spiderIntro">Du hebst die staubige Taschenlampe auf …</div><video class="spiderVideo" id="spiderVideo" src="spinnen-jumpscare.mp4" preload="auto" playsinline aria-label="Eine Spinne springt auf dich zu"></video><div class="spiderQuestion">Bist du dir sicher, dass sie nicht mehr auf dir sitzt?</div></div><div id="letterOverlay" role="dialog" aria-modal="true" aria-label="Rominas Brief"><div class="letterPage"><h2>Der letzte Brief</h2><p id="letterText"></p><button id="letterSkip">Brief vollständig anzeigen</button><button id="letterContinue" style="display:none">Brief anheben</button></div></div><audio id="letterAudio" src="rominas-brief.mp3" preload="auto"></audio><div id="libraryListening" class="libraryListening" role="dialog" aria-modal="true" aria-label="Vorlesung im alten Buch"><div class="libraryBook"><div style="font-size:35px">📖</div><div class="libraryVersion">BIBLIOTHEK · V22 · MITLESETEXT</div><h2 id="libraryChapterTitle"></h2><div id="libraryStoryText" class="libraryStoryText" aria-label="Kapiteltext"></div><progress id="libraryProgress" value="0" max="100"></progress><p id="libraryProgressLabel">00:00</p><button id="libraryStopButton">Vorlesung abbrechen</button></div></div><audio id="libraryNarrator" preload="none"></audio><div id="app"></div>
 <script>
 (function(){
 "use strict";
@@ -477,7 +488,7 @@ function startIntro(){
   introMusic.play().catch(function(){});
   introNoise.play().catch(function(){});
  }
- var done=false,lastCue=-1;
+ var done=false,lastCue=-1,closing=false;
  function syncText(){
   if(done)return;
   var t=audio.currentTime,idx=0;
@@ -488,20 +499,41 @@ function startIntro(){
   if(done)return;done=true;
   audio.removeEventListener('timeupdate',syncText);
   audio.removeEventListener('seeked',syncText);
-  audio.removeEventListener('ended',finish);
+  audio.removeEventListener('ended',showFinalName);
   audio.pause();audio.currentTime=0;stopIntroAmbience();
   overlay.classList.remove('on');S.locked=false;startTimer();startRoom();
  }
+ function showFinalName(){
+  if(done||closing)return;
+  closing=true;
+  audio.pause();stopIntroAmbience();
+  line.classList.add('introNameFinal');
+  line.textContent='';
+  window.setTimeout(function(){
+   if(done)return;
+   line.textContent=S.name||'Unbekannter';
+   window.setTimeout(finish,2300);
+  },1100);
+ }
  audio.addEventListener('timeupdate',syncText);
  audio.addEventListener('seeked',syncText);
- audio.addEventListener('ended',finish);
+ audio.addEventListener('ended',showFinalName);
  document.getElementById('introSkip').onclick=finish;
- if(!S.sound){finish();return}
+ if(!S.sound){showFinalName();return}
  audio.currentTime=0;audio.volume=.88;syncText();
  audio.play().then(startIntroAmbience).catch(function(){
   line.textContent='Audio konnte nicht starten.';
   document.getElementById('introSkip').textContent='Spiel ohne Intro starten';
  });
+}
+function showEntryDoorThenIntro(){
+ var door=document.getElementById('entryDoorScene');
+ door.classList.remove('opening');door.classList.add('on');
+ // Reflow sorgt dafür, dass die Animation bei jedem Neustart beginnt.
+ void door.offsetWidth;
+ door.classList.add('opening');
+ try{var creak=new Audio('sfx-creak.mp3');creak.volume=.5;creak.play().catch(function(){});}catch(e){}
+ window.setTimeout(function(){door.classList.remove('on','opening');startIntro()},3000);
 }
 // Vier neue Puppenbilder – keine Veränderung am bestehenden Puppeteer-Jumpscare.
 var newDollScareBusy=false,newDollScareTimer=null;
@@ -898,7 +930,7 @@ function start(){
  S.startStamp=Date.now();initVariant();S.ritualDialogueVariant=Math.random()<.5?"romina": "silas";S.ritualDialogueHeard=false;
  S.name=(document.getElementById("name").value||"Unbekannter").trim();
  prepareRominaWhisper(S.name);
- music.pause();music.currentTime=0;startIntro();
+ music.pause();music.currentTime=0;showEntryDoorThenIntro();
 }
 
 
