@@ -242,8 +242,8 @@ function maybeRominaWhisper(){
    Date.now()<rominaWhisperNext||rominaWhisperCount>=5)return;
  if(!rominaWhisperAudio.paused)return;
  rominaWhisperAudio.currentTime=0;
- rominaWhisperAudio.play().then(function(){rominaWhisperCount++;rominaNameAudioStatus="Name wurde abgespielt";}).catch(function(e){rominaNameAudioStatus="Audio-Wiedergabefehler: "+e.message;console.warn('Namensflüstern konnte nicht starten:',e);});
- rominaWhisperNext=Date.now()+65000+Math.random()*110000;
+ rominaWhisperNext=Infinity;
+ rominaWhisperAudio.play().then(function(){rominaWhisperCount++;rominaNameAudioStatus="Name wurde abgespielt";rominaWhisperNext=Date.now()+25*60*1000+Math.random()*5*60*1000;}).catch(function(e){rominaWhisperNext=Date.now()+30000;rominaNameAudioStatus="Audio-Wiedergabefehler: "+e.message;console.warn('Namensflüstern konnte nicht starten:',e);});
 }
 // Rominas acht ORIGINAL-Aufnahmen: zufällig aus wechselnden Richtungen (Kopfhörer empfohlen).
 // Keine neuen Rätsel, keine zusätzlichen API-Aufrufe.
@@ -307,7 +307,7 @@ var puzzleOrder=[4,1,6,2,5,3], puzzleTarget=[1,2,3,4,5,6], selected=null;
 
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function has(x){return S.items.indexOf(x)!==-1}
-function add(x){if(!has(x)){S.items.push(x);toast("Gefunden: "+x)}}
+function add(x){if(!has(x)){S.items.push(x);toast("Gefunden: "+(x.startsWith("Uhrzeiger ")?"Altes Zeigerpaar":x))}}
 function mark(x){S.flags[x]=true}
 function visited(x){S.visits[x]=(S.visits[x]||0)+1}
 function timePenalty(seconds){return Math.round(seconds*S.penaltyFactor)}
@@ -324,7 +324,7 @@ function updateHudOnly(){observerHideOnLight();
  if(bt)bt.classList.toggle("on",S.blackoutRemaining!==null&&!S.ended);
  if(bs&&S.blackoutRemaining!==null)bs.textContent="00:"+String(Math.max(0,S.blackoutRemaining)).padStart(2,"0");
 }
-function inv(){return S.items.length?S.items.map(x=>'<span class="item">'+esc(x)+'</span>').join(""):'<span class="muted">leer</span>'}
+function inv(){return S.items.length?S.items.map(x=>'<span class="item">'+esc(x.startsWith('Uhrzeiger ')?'Altes Zeigerpaar':x)+'</span>').join(""):'<span class="muted">leer</span>'}
 function toast(t){toastEl.textContent=t;toastEl.classList.add("on");setTimeout(()=>toastEl.classList.remove("on"),1600)}
 // Dezente, zufällige Hausgeräusche. Während Intro/Spieluhr/Schrecksequenzen pausiert.
 var ambienceFiles={door:'sfx-door.mp3',footsteps:'sfx-footsteps.mp3',baby:'sfx-baby.mp3',laugh:'sfx-laugh.mp3',knock:'sfx-knock.mp3',creak:'sfx-creak.mp3',floor:'sfx-floor.mp3',crack:'sfx-crack.mp3',wind:'sfx-wind.mp3'};
@@ -381,10 +381,6 @@ function clockTimeLabel(i){var t=S.variant.clockTimes[i];return String(t[0]).pad
 function render(title,text,choices,room,grid){
  if(S.variant&&S.variant.clockTimes)text=text.replace(/PLACE_CLOCK_([0-3])/g,function(_,n){return clockTimeLabel(+n)});
  var oldRoom=S.room;S.room=room||S.room;if(S.room!=='Bühne'&&ritualDialogueAudio&&!ritualDialogueAudio.paused)stopRitualDialogue();if(S.room!=='Bühne'&&stageEntered){stageEntered=false;stageWhisperPrimed=false;if(stageWhisperTimer){clearTimeout(stageWhisperTimer);stageWhisperTimer=null}if(ritualAudio&&!ritualAudio.paused)ritualAudio.pause()}if(oldRoom!==S.room)ambientOnRoom(S.room);visited(S.room);dark.classList.toggle("on",S.room!=="Startkammer"&&!S.light);
- if(title!=='EINE VERBORGENE VERBINDUNG' && S.variant && STAGE_ROOMS.indexOf(S.room)!==-1 && stageClueAt(S.room)>=0 && !S.ended){
-  choices=choices.slice();
-  if(S.flags.pictureSolved||stageClueAt(S.room)<4)choices.push(['🔎 Eine unauffällige Spur untersuchen',function(){stageClue(S.room)}]);
- }
  // Jagd beginnt automatisch; kein Testknopf mehr im Spiel.
  var btns=choices.map((c,i)=>'<button data-i="'+i+'" '+(c[2]?'disabled':'')+'>'+c[0]+'</button>').join("");
  app.innerHTML=top()+'<div class="story"><h2>'+title+'</h2>'+text+'</div><div id="choices" class="'+(grid?'grid':'')+'">'+btns+'<button id="bloodBtn">🩸 Hinweise ('+(S.sacrifices<4?[10,15,20,25][S.sacrifices]+' Blut für neuen Hinweis':'gekaufte Hinweise lesen')+')</button></div>';
@@ -505,11 +501,29 @@ function startIntro(){
 }
 // Vier neue Puppenbilder – keine Veränderung am bestehenden Puppeteer-Jumpscare.
 var newDollScareBusy=false,newDollScareTimer=null;
+// Zufällige visuelle Schreckmomente: frühestens nach 5, spätestens nach 7 Minuten aktiver Spielzeit.
+// Geskriptete Szenen sind davon unabhängig; nach ihnen startet die Zufallsuhr neu.
+var lastVisualScareAt=0,visualScareCooldownMs=60000;
+var nextRandomScareAt=Infinity;
+function scheduleRandomScare(){nextRandomScareAt=Date.now()+300000+Math.random()*120000;}
+function noteFixedScare(){lastVisualScareAt=Date.now();scheduleRandomScare();}
+function allowVisualScare(){
+ var now=Date.now();
+ if(now<nextRandomScareAt||now-lastVisualScareAt<visualScareCooldownMs)return false;
+ lastVisualScareAt=now;scheduleRandomScare();return true;
+}
+// Zentraler Timer: auch ohne zufälliges Raumereignis kommt ein Schreckmoment.
+setInterval(function(){
+ if(!S||S.ended||S.locked||!S.startStamp||Date.now()<nextRandomScareAt)return;
+ if(document.getElementById('musicOverlay')?.style.display==='flex')return;
+ jumpscare();
+},2000);
 var newDollImages={error:'puppe-fehler-marionette.jpg',kids:'puppe-kinderzimmer.png',hall:'puppe-flur-schlafzimmer.png',ritual:'puppe-ritual.jpg'};
-function newDollScare(kind){
+function newDollScare(kind,scripted){
  if(newDollScareBusy||S.ended||S.locked||chaseTestRemaining!==null)return false;
  var layer=document.getElementById('newDollScare'),img=document.getElementById('newDollScareImage');
- if(!layer||!img||!newDollImages[kind])return false;
+ if(!layer||!img||!newDollImages[kind]||(!scripted&&!allowVisualScare()))return false;
+ if(scripted)noteFixedScare();
  newDollScareBusy=true;S.jumps++;
  img.src=newDollImages[kind];
  layer.classList.remove('on');void layer.offsetWidth;layer.classList.add('on');
@@ -535,7 +549,7 @@ function wrong(){
  S.wrong++;S.time=Math.max(0,S.time-timePenalty(75));S.panic=Math.min(5,S.panic+1);loseSanity(4);toast("Falsch — "+timePenalty(75)+" Sekunden verloren.");
  if(Math.random()<.34)newDollScare('error');
 }
-function jumpscare(){S.jumps++;scare.classList.add("on");setTimeout(()=>scare.classList.remove("on"),420)}
+function jumpscare(scripted){if(scripted)noteFixedScare();else if(!allowVisualScare())return;S.jumps++;scare.classList.add("on");setTimeout(()=>scare.classList.remove("on"),420)}
 function haunt(){
  if(S.ended)return;
  var r=Math.random();
@@ -565,6 +579,9 @@ function dollJumpscare(force,customSound){
  if(!force && Math.random()>.28)return;
  var d=document.getElementById("dollScare");
  if(!d)return;
+ // Der fest geskriptete Spieluhr-Schreck darf nicht vom Zufalls-Cooldown verschwinden.
+ if(customSound==='spieluhr-neuer-schrei.mp3'){noteFixedScare();}
+ else if(!allowVisualScare())return;
  S.jumps++;d.classList.add("on");
  if(customSound){playScareAudio(customSound,customSound==='spieluhr-neuer-schrei.mp3'?.26:.65)}else try{
   var AC=window.AudioContext||window.webkitAudioContext,ac=new AC(),o=ac.createOscillator(),g=ac.createGain();
@@ -622,7 +639,7 @@ function flashlightFlicker(){
  if(Math.random()<(S.sanity<40?.38:.16))setTimeout(function(){toast("War da gerade jemand?")},delay);
 }
 function handJumpscare(){
- var h=document.getElementById("handScare");if(!h)return;
+ var h=document.getElementById("handScare");if(!h||!allowVisualScare())return;
  S.jumps++;h.classList.add("on");
  try{
    var AC=window.AudioContext||window.webkitAudioContext,ac=new AC(),o=ac.createOscillator(),g=ac.createGain();
@@ -678,7 +695,7 @@ function fakeCrashThen(cb){
  setTimeout(function(){
    f.classList.remove("on");
    if(S.sound)music.play().catch(function(){});
-   jumpscare();
+   jumpscare(true);
    setTimeout(cb,500);
  },3100);
 }
@@ -758,10 +775,13 @@ if(answers.indexOf("__MIRROR_RANDOM__")!==-1){
 
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
 function initVariant(){
- var motifs=shuffle(["Teddy","Standuhr","Akte","Ballons","Rohre","Spiegel"]);
- var symbols=shuffle(["mond","turm","kreuz","stern"]);
+ var motifs=shuffle(["Teddy","Standuhr","Puppe","Ballons","Hölzerne Hand","Spiegel"]);
+ var symbols=["mond",...shuffle(["turm","kreuz","stern"])];
  var digits=shuffle(["1","2","3","4","5","6","7","8","9"]).slice(0,4);
  S.variant={fragmentMap:{1:motifs[0],2:motifs[1],3:motifs[2],4:motifs[3],5:motifs[4],6:motifs[5]},
+ // Ein gemeinsamer Fundort-Pool: 6 Fragmente + 4 Uhrhinweise, ohne Doppelbelegung.
+ // Alle Fundorte sind ohne gelöstes Bilder- oder Uhrenrätsel erreichbar.
+ fragmentLocations:null,clockClueLocations:null,
  clockAnswer:symbols.join(""),clockWords:symbols,
  // 36 mögliche Zeiten, jeweils in Fünf-Minuten-Schritten; vier einzigartige Zeiten pro Spiel.
  mirrorDigits:digits,mirrorAnswer:digits.slice().reverse().join(""),doorNumber:Math.floor(Math.random()*3)+1,
@@ -773,8 +793,76 @@ function initVariant(){
   [9,5],[9,30],[9,50],[10,15],[10,40],[10,55],
   [11,10],[11,25],[11,45],[12,0],[12,20],[12,50]
  ]).slice(0,4),finalCode:digits.join("")};
+ // Acht Räume mit je zwei unterschiedlichen Behältern: insgesamt 16 Beweise.
+ // Zwei Papiere derselben Schublade gelten ausdrücklich als EIN Behälter.
+ var evidenceRooms={
+  Startkammer:["frame_back","desk_program"],
+  Flur:["hall_board","hall_coat"],
+  Archiv:["archive_file","archive_drawer"],
+  Kinderzimmer:["kids_teddy","kids_picture"],
+  Keller:["basement_pipes","basement_chest"],
+  Spiegelsaal:["mirror_frame","mirror_base"],
+  Schlafzimmer:["bedroom_frame","bedroom_box"],
+  Badezimmer:["bath_mirror_back","bath_linen_seam"]
+ };
+ // Jede Gruppe hat unterschiedliche Räume; insgesamt nie mehr als zwei
+ // Hauptbeweise pro Raum. Kein Behälter wird zweimal belegt.
+ var roomNames=Object.keys(evidenceRooms),groups=null;
+ for(var attempt=0;attempt<5000;attempt++){
+  var load={};roomNames.forEach(function(r){load[r]=0});
+  var trial=[],ok=true;
+  [4,6,6].forEach(function(count){
+   if(!ok)return;
+   var eligible=shuffle(roomNames).filter(function(r){return load[r]<2}).slice(0,count);
+   if(eligible.length<count){ok=false;return}
+   eligible.forEach(function(r){load[r]++});trial.push(eligible);
+  });
+  if(ok){groups=trial;break}
+ }
+ if(!groups)throw Error('Keine gültige Verteilung gefunden');
+ var free={};roomNames.forEach(function(r){free[r]=shuffle(evidenceRooms[r])});
+ function allocate(rooms){return rooms.map(function(r){return free[r].pop()})}
+ S.variant.clockClueLocations=allocate(groups[0]);
+ S.variant.fragmentLocations=allocate(groups[1]);
+ S.variant.stageLocations=allocate(groups[2]);
+ S.variant.workshopDollRoom=shuffle(['Kinderzimmer','Schlafzimmer','Badezimmer','Archiv','Startkammer','Keller'])[0];
 }
 function fragMotif(n){return S.variant.fragmentMap[n]}
+function hiddenFragment(place,back,description){
+ // Bestehende 13 Bildfragment-Verstecke und vier neue Verstecke für Uhrhinweise
+ // teilen sich denselben Pool. Kein Fundort kann beides enthalten.
+ var index=S.variant.fragmentLocations.indexOf(place);
+ if(index>=0){
+  var n=index+1;
+  if(S.pieces.indexOf(n)<0)return piece(n,fragMotif(n),back);
+ }
+ var clockIndex=S.variant.clockClueLocations.indexOf(place);
+ if(clockIndex>=0 && !S.flags['clockClue'+clockIndex]){
+  mark('clockClue'+clockIndex);add('Uhrzeiger '+prettySymbol(S.variant.clockWords[clockIndex]));
+  var symbol=S.variant.clockWords[clockIndex];
+  var events=['Erste Vorstellung','Zweite Beschwörung','Dritte Beschwörung','Vierte Beschwörung'];
+  var stories={
+   mond:'Als der Mond nur eine schmale Sichel über dem alten Theater war, begann Rominas erste Vorstellung um ',
+   turm:'Im Schatten des alten Turmes schlug die Glocke, obwohl niemand an ihrem Seil zog. Die zweite Beschwörung begann um ',
+   kreuz:'Wir ritzten ein Kreuz in das Holz des Tisches. Bei der dritten Beschwörung brach es entzwei, genau um ',
+   stern:'Vier Kerzen umschlossen den fünfzackigen Stern. Bei der vierten Beschwörung erloschen sie gleichzeitig um '
+  };
+  var endings={
+   mond:'. Hinter der Bühne begegnete sie Silas zum ersten Mal. Keiner von beiden ahnte, was diese Begegnung auslösen würde.',
+   turm:'. Der letzte Schlag kam nicht von oben, sondern tief aus dem Haus.',
+   kreuz:'. Hinter der Wand antwortete ein leises Klopfen.',
+   stern:'. Im Dunkeln begann etwas zu atmen.'
+  };
+  return render('EIN VERSTECKTER UHRZEIT-HINWEIS',
+   '<div class="panel"><strong>Du hast eine alte Beschwörungsnotiz gefunden.</strong></div>'+ 
+   '<p><em>„'+stories[symbol]+clockTimeLabel(clockIndex)+endings[symbol]+'“</em></p>'+ 
+   '<p>Zwischen den Seiten liegt ein altes Zeigerpaar. Du steckst es ein, ohne das angelaufene Metall genauer zu untersuchen.</p>',
+   [['⬅ Zurück',back]],S.room);
+ }
+ var ritualIndex=S.variant.stageLocations.indexOf(place);
+ if(ritualIndex>=0)return stageClue(ritualIndex,back);
+ render('GENAUER UNTERSUCHT',description||'Du untersuchst den Gegenstand sorgfältig. Hier ist nichts Weiteres verborgen.',[['⬅ Zurück',back]],S.room);
+}
 function prettySymbol(s){return {mond:"MOND",turm:"TURM",kreuz:"KREUZ",stern:"STERN"}[s]||s.toUpperCase()}
 
 function menu(){
@@ -799,6 +887,7 @@ function menu(){
  document.getElementById("start").onclick=start;
 }
 function start(){
+ lastVisualScareAt=0;scheduleRandomScare();
  var mode=document.getElementById("difficulty").value;
  var settings={easy:[4500,.5],normal:[3600,1],hard:[2700,1.5]}[mode];
  S.difficulty=mode;S.time=settings[0];S.penaltyFactor=settings[1];
@@ -861,35 +950,57 @@ function spiderScare(){
 /* Versteckte Fundstücke: Uhrzeiten nur nach aktivem Durchsuchen sichtbar. */
 function desk(){maybeDrawerSpider('Startkammer');render('DER ALTE SCHREIBTISCH','Die Schublade klemmt. Nach einem Ruck öffnet sie sich. Darin liegen Dutzende vergilbte Papiere, Quittungen und alte Briefe.',[
  ['📜 Rechnungen durchsehen',()=>render('ALTE RECHNUNGEN','Holz, Draht, Bühnenfarbe. Alles ist auf Romina ausgestellt. Auf einer Rechnung steht: „Silas hat die letzten Lieferungen selbst abgeholt.“',[['⬅ Zu den Papieren',desk]],'Startkammer')],
- ['🎟️ Altes Showprogramm entfalten',()=>render('DIE ERSTE VORSTELLUNG','Ein vergilbtes Programmheft zeigt Rominas erste öffentliche Vorstellung. Auf der Rückseite steht in verblichener Druckerschwärze: <strong>Beginn: PLACE_CLOCK_0</strong>. Unter dem Datum ist eine kleine Marionette gezeichnet.',[['⬅ Zu den Papieren',desk]],'Startkammer')],
+ ['🎟️ Altes Showprogramm entfalten',()=>hiddenFragment('desk_program',desk,'Das Programmheft ist vergilbt. Die Rückseite ist fast unleserlich.')],
  ['✉️ Zerknitterten Brief lesen',()=>render('EIN ALTER BRIEF','„Die Puppen sind noch nicht bereit“, schreibt Silas. „Aber wir werden es gemeinsam schaffen.“',[['⬅ Zu den Papieren',desk]],'Startkammer')],
+ ['🧾 Quittungen auf der Rückseite prüfen',()=>hiddenFragment('desk_receipts',desk,'Auf den Quittungen stehen verblasste Zahlen.')],
  ['⬅ Schublade schließen',startRoom]],'Startkammer')}
 function hallBoard(){render('DIE LOSE BODENLEISTE','Zwischen Staub und Splittern steckt ein zusammengefaltetes Bündel. Daneben liegt eine verrostete Haarnadel.',[
- ['📖 Papierbündel öffnen',()=>render('SILAS’ AUFZEICHNUNGEN','Die meisten Seiten sind voller durchgestrichener Namen und unleserlicher Formeln. Zwischen ihnen steckt eine Seite: <em>„Erste Beschwörung: PLACE_CLOCK_1. Romina hielt die Fäden. Ich sprach die Worte.“</em>',[['⬅ Zur Bodenleiste',hallBoard]],'Flur')],
+ ['📖 Papierbündel öffnen',()=>hiddenFragment('hall_notes',hallBoard,'Die Aufzeichnungen sind voller durchgestrichener Namen und unleserlicher Formeln.')],
  ['🔩 Haarnadel '+(has('Verrostete Haarnadel')?'ansehen':'aufheben'),()=>{if(!has('Verrostete Haarnadel'))add('Verrostete Haarnadel');render('VERROSTETE HAARNADEL','Du hast die Haarnadel eingesteckt. Das dünne Metall ist verbogen, aber noch stabil. Vielleicht lässt sich damit später ein kleines Schloss öffnen.',[['⬅ Zur Bodenleiste',hallBoard]],'Flur')}],
+ ['🪵 Bodenleiste vorsichtig anheben',()=>hiddenFragment('hall_board',hallBoard,'Darunter liegt nur trockener Staub.')],
  ['⬅ Zurück',hall]],'Flur')}
 function archiveDrawers(){maybeDrawerSpider('Archiv');render('ARCHIVSCHUBLADEN','Einige Schubladen sind leer. Andere sind bis zum Rand mit beschädigten Akten gefüllt.',[
  ['📁 Theaterabrechnungen prüfen',()=>render('THEATERABRECHNUNGEN','Sechs Vorstellungen sind abgerechnet. Bei der siebten ist die Spalte für die Einnahmen leer.',[['⬅ Schubladen',archiveDrawers]],'Archiv')],
- ['🗞️ Polizeiberichte durchblättern',()=>render('POLIZEIBERICHT','Ein Protokoll erwähnt sechs verschwundene Personen. Auf der letzten Seite steht: <em>„Die sechste Vorstellung endete um PLACE_CLOCK_2. Niemand verließ den Saal.“</em>',[['⬅ Schubladen',archiveDrawers]],'Archiv')],
+ ['🗞️ Polizeiberichte durchblättern',()=>hiddenFragment('archive_police',archiveDrawers,'Der Polizeibericht erwähnt sechs verschwundene Personen, doch die Seiten sind stark beschädigt.')],
  ['📷 Fotos betrachten',()=>render('ALTE FOTOS','Romina und Silas stehen lächelnd vor ihrem Theater. Im Hintergrund hängt ein Vorhang, der auf jedem Foto ein Stück weiter geöffnet ist.',[['⬅ Schubladen',archiveDrawers]],'Archiv')],
+ ['🗃️ Schubladenboden abtasten',()=>hiddenFragment('archive_drawer',archiveDrawers,'Der Schubladenboden ist leer.')],
  ['⬅ Zurück',archive]],'Archiv')}
 function basementTools(){render('DER WERKZEUGKASTEN','Der Deckel quietscht. Unter Schrauben, Zangen und alten Uhrfedern liegt eine schmale Ledermappe.',[
- ['⚙️ Uhrfedern untersuchen',()=>render('ZERBROCHENES UHRWERK','Jemand hat die Zeiger der vierten Uhr gewaltsam entfernt. Die Schrauben sind noch frisch.',[['⬅ Werkzeugkasten',basementTools]],'Keller')],
- ['📓 Ledermappe öffnen',()=>render('LETZTER EINTRAG','Ein abgerissener Wachzettel trägt einen hastigen Vermerk: <em>„PLACE_CLOCK_3 – Romina und Silas zuletzt gesehen. Danach keine Spur.“</em> Darunter wurde ein siebtes Strichmännchen eingeritzt.',[['⬅ Werkzeugkasten',basementTools]],'Keller')],
+ ['🧵 Alte Kupferwicklung aus dem Werkzeugkasten lösen',()=>{add('Kupferspule');basementTools()},has('Kupferspule')],
+ ['⚙️ Uhrfedern untersuchen',()=>render('ZERBROCHENES UHRWERK','Hier wurden einst Uhrzeiger angefertigt. Vier Paar fehlen.',[['⬅ Werkzeugkasten',basementTools]],'Keller')],
+ ['📓 Ledermappe öffnen',()=>hiddenFragment('basement_log',basementTools,'Auf dem Wachzettel ist nur noch ein eingeritztes Strichmännchen zu erkennen.')],
+ ['🧰 Werkzeugkastenboden prüfen',()=>hiddenFragment('basement_tools',basementTools,'Unter dem Werkzeug ist nichts.')],
  ['⬅ Zurück',basement]],'Keller')}
 
 /* START */
+function frameBackOrPuzzle(){render('DER ALTE BILDERRAHMEN','Der Rahmen ist schwer und staubig. Auf der Rückseite sitzt ein lockerer Karton. Vielleicht verbirgt sich darunter etwas.',[
+ ['🖼️ Bilderrahmen umdrehen',()=>hiddenFragment('frame_back',frameBackOrPuzzle,'Hinter dem Karton sind nur Staub und alte Nägel.')],
+ ['🧩 Bild zusammensetzen',puzzleBoard],['⬅ Zurück',startRoom]],'Startkammer')}
 function startRoom(){stopDaisy();
  render("DIE STARTKAMMER",
- 'Eine rote Lampe flackert.<br><br>Auf dem Tisch liegen eine <strong>Taschenlampe</strong>, ein leerer Bilderrahmen und eine Standuhr.<br><br>An der Wand steht ein alter Schreibtisch mit einer schwergängigen Schublade. Hinter dir führt eine Tür in völlige Dunkelheit.',
+ 'Eine rote Lampe flackert.<br><br>Auf dem Tisch liegen eine <strong>Taschenlampe</strong>, ein leerer Bilderrahmen.<br><br>An der Wand steht ein alter Schreibtisch mit einer schwergängigen Schublade. Hinter dir führt eine Tür in völlige Dunkelheit.',
  [
   ...(has("Taschenlampe")?[]:[["🔦 Taschenlampe nehmen",spiderScare]]),
-  ["🕰️ Standuhr ansehen",clockA],
+... (S.variant.workshopDollRoom==='Startkammer'?[['🪆 Eine alte Puppe hinter dem Schreibtisch untersuchen',rominasFirstDoll]]:[]),
   ["🗄️ Schreibtisch untersuchen",desk],
-  ["🖼️ Leeren Bilderrahmen untersuchen",()=>{if(S.pieces.indexOf(2)<0)piece(2,fragMotif(2),startRoom);else puzzleBoard()}],
+  ["🖼️ Leeren Bilderrahmen untersuchen",()=>{frameBackOrPuzzle()}],
   ["🚪 Eingangstür untersuchen",entranceDoor],
   ["🚪 In den Flur",hall]
  ],"Startkammer",true)
+}
+function speisesaal(){stopDaisy();
+ var names=['Erste Vorstellung','Zweite Beschwörung','Dritte Beschwörung','Vierte Beschwörung'];
+ var actions=[];
+ for(var i=0;i<4;i++)(function(n){
+  var state=S.flags['clock'+n]?' · eingestellt':S.flags['clockHandsInstalled'+n]?' · Zeiger eingesetzt':' · ohne Zeiger';
+  actions.push(['🕰️ Uhr '+(n+1)+' – '+prettySymbol(S.variant.clockWords[n])+state,function(){clockPuzzle(n,speisesaal)}]);
+ })(i);
+ actions.push(['⬅ Zurück in den Flur',hall]);
+ render('DER VERLASSENE SPEISESAAL',
+  'Ein langer Tisch verschwindet im Staub. Vier schwere antike Uhren stehen an der Wand. Ihre Zeiger fehlen. Unter jedem Zifferblatt ist ein anderes Zeichen tief ins Holz geritzt.<br><br>'+ 
+  'Ein Schild warnt: <em>VIER ZEITEN. VIER ZEICHEN. KEINE STUNDE VERGISST.</em><br><br>'+ 
+  (S.flags.clock0&&S.flags.clock1&&S.flags.clock2&&S.flags.clock3?'<strong>Alle vier Uhren sind eingestellt. Ein tiefes Schlagen scheint aus den Wänden zu kommen.</strong>':'Finde vier Hinweise mit den passenden Zeigern. Die Zeichen zeigen, welche Zeit zu welcher Uhr gehört.'),
+  actions,'Speisesaal',true);
 }
 function clockPuzzle(i,back){
  var names=['DIE ERSTE UHR','DIE ZWEITE UHR','DIE DRITTE UHR','DIE VIERTE UHR'];
@@ -900,9 +1011,11 @@ function clockPuzzle(i,back){
   'Die Nacht des Verschwindens. Seit dieser Stunde hat niemand Romina oder Silas gesehen.'
  ];
  var solved=!!S.flags['clock'+i],symbol=prettySymbol(S.variant.clockWords[i]);
- if(!S.flags.pictureSolved&&!solved)return render(names[i],stories[i]+'<br><br>Die Zeiger lassen sich drehen, aber eine unsichtbare Kraft hält das Uhrwerk fest. Hinter dem Glas sind frische Kratzspuren. Vielleicht bewegt sich hier später noch etwas.',[['⬅ Zurück',back]],'Keller');
- if(solved)return render(names[i],stories[i]+'<br><br>Die Uhr steht still. Unter dem Zifferblatt ist ein Zeichen freigelegt: <strong>'+symbol+'</strong>.', [['⬅ Zurück',back]],['Startkammer','Flur','Archiv','Keller'][i]);
- var room=['Startkammer','Flur','Archiv','Keller'][i];
+ if(!S.flags.pictureSolved&&!solved)return render(names[i],stories[i]+'<br><br>Unter dem Zifferblatt ist <strong>'+symbol+'</strong> eingeritzt. Noch hält eine unsichtbare Kraft das Uhrwerk fest. Löse zuerst das Bilderrätsel.',[['⬅ Zurück',back]],'Speisesaal');
+ if(!has('Uhrzeiger '+prettySymbol(S.variant.clockWords[i]))&&!solved)return render(names[i],stories[i]+'<br><br>Unter dem Zifferblatt ist <strong>'+symbol+'</strong> eingeritzt. Die Uhr besitzt keine Zeiger. Suche im Haus nach den fehlenden Zeigern.',[['⬅ Zurück',back]],'Speisesaal');
+ if(!S.flags['clockHandsInstalled'+i])return render(names[i],stories[i]+'<br><br>Du setzt das gefundene Zeigerpaar vorsichtig in das Uhrwerk. Erst jetzt erkennst du die Gravur auf dem Verbindungsteil: <strong>'+symbol+'</strong>. Sie passt zu dem Zeichen unter dem Zifferblatt.',[['⚙️ Zeiger einsetzen',function(){mark('clockHandsInstalled'+i);clockPuzzle(i,back)}],['⬅ Zurück',back]],'Speisesaal');
+ if(solved)return render(names[i],stories[i]+'<br><br>Die Uhr steht still. Unter dem Zifferblatt ist ein Zeichen freigelegt: <strong>'+symbol+'</strong>.', [['⬅ Zurück',back]],'Speisesaal');
+ var room='Speisesaal';
  render(names[i],stories[i]+'<br><br>Die Zeiger lassen sich von Hand verstellen. Irgendwo in diesem Haus ist die Uhrzeit dieser Begebenheit festgehalten.'+
   '<div class="clockFace" id="clockFace"><div class="hand hour" id="clockHour"></div><div class="hand" id="clockMinute"></div><div class="pin"></div></div>'+
   '<div class="clockControls"><label>Stunde <select id="clockH"></select></label><label>Minute <select id="clockM"></select></label></div><p id="clockFeedback" class="muted" aria-live="polite"></p>',
@@ -924,8 +1037,8 @@ function clockPuzzle(i,back){
  document.querySelector('[data-i="0"]').onclick=function(){
   var target=S.variant.clockTimes[i];
   if(+h.value===target[0]&&+m.value===target[1]){
-   mark('clock'+i);playClockClick();
-   render(names[i],stories[i]+'<br><br>Die Zeiger rasten ein. Ein verborgenes Zeichen tritt hervor: <strong>'+symbol+'</strong>.<br><br><span class="muted">Merke dir dieses Zeichen und seine Reihenfolge.</span>',[['⬅ Zurück',back]],room);
+   mark('clock'+i);playClockClick();if(S.flags.clock0&&S.flags.clock1&&S.flags.clock2&&S.flags.clock3){var gong=new Audio('uhrwerk-droehnen.wav');gong.volume=.7;if(S.sound)gong.play().catch(function(){});}
+   render(names[i],stories[i]+'<br><br>Die Zeiger rasten ein. Das eingeritzte Zeichen <strong>'+symbol+'</strong> glimmt schwach. <span class="muted">Merke dir das Zeichen und die Reihenfolge.</span>',[['⬅ Zurück',back]],room);
   }else{
    var lost=timePenalty(30);
    S.time=Math.max(0,S.time-lost);
@@ -943,7 +1056,7 @@ function clockEnding(){
  if(S.flags.clockSolved)return clockAftermath();
  mark('clockSolved');add('Uhrensiegel');S.locked=true;
  var priorVolume=music.volume;music.volume=0;
- render('DAS LETZTE UHRWERK','Alle vier Zeiger erstarren. Das Ticken verstummt.<br><br><em>Etwas tief unter dem Haus beginnt zu dröhnen.</em>',[], 'Spiegelsaal');
+ render('DAS LETZTE UHRWERK','Die vier Uhren des Speisesaals sind eingestellt. Ein tiefes Uhrenschlagen hallt durch das Haus.<br><br><em>Etwas tief unter dem Haus beginnt zu dröhnen.</em>',[], 'Spiegelsaal');
  var drone=new Audio('uhrwerk-droehnen.wav');drone.volume=.5;
  if(S.sound)drone.play().catch(function(){});
  letterTimers.push(setTimeout(function(){music.volume=priorVolume;clockLetter()},6200));
@@ -982,17 +1095,18 @@ function clockAftermath(){
   '<p>Auf dem Uhrensiegel stehen die Zahlen <strong>4</strong> und <strong>7</strong>.</p>',
   has('Spiegelscherbe')?[['⬅ Spiegelsaal',mirrorRoom]]:[['🪞 Spiegelscherbe nehmen',function(){add('Spiegelscherbe');mirrorRoom()}],['⬅ Spiegelsaal',mirrorRoom]],'Spiegelsaal');
 }
-function clockA(){clockPuzzle(0,startRoom)}
+function clockA(){speisesaal()}
 
 /* HALL */
 function hall(){stopDaisy();
  if(!has("Taschenlampe"))return render("DUNKELHEIT","Ohne Licht gehst du hier nicht weiter.",[["⬅ Zurück",startRoom]],"Flur");
  render("DER FLUR",
- (S.light?'Dein Lichtkegel reicht nur wenige Meter.':'Du tastest dich an den Wänden entlang. Selbst im Dunkeln findest du die Türen.')+'<br><br>Hinter mehreren Türen liegen weitere Räume: <strong>ARCHIV</strong>, <strong>KINDERZIMMER</strong>, <strong>KELLER</strong>, <strong>SPIEGELSAAL</strong> sowie <strong>SCHLAFZIMMER</strong>, <strong>BADEZIMMER</strong> und die <strong>BÜHNE</strong>.<br><br>An der Decke hängt eine zweite Uhr. In einer Ecke steht ein umgekippter Garderobenschrank. Etwas Papier ragt unter einer losen Bodenleiste hervor.',
+ (S.light?'Dein Lichtkegel reicht nur wenige Meter.':'Du tastest dich an den Wänden entlang. Selbst im Dunkeln findest du die Türen.')+'<br><br>Hinter mehreren Türen liegen weitere Räume: <strong>ARCHIV</strong>, <strong>KINDERZIMMER</strong>, <strong>KELLER</strong>, <strong>SPIEGELSAAL</strong> sowie <strong>SCHLAFZIMMER</strong>, <strong>BADEZIMMER</strong> und die <strong>BÜHNE</strong>.<br><br>Eine Tür führt in den verlassenen Speisesaal. In einer Ecke steht ein umgekippter Garderobenschrank. Etwas Papier ragt unter einer losen Bodenleiste hervor.',
  [
   ["🔦 Taschenlampe an/aus",()=>{toggleLight();hall()}],
-  ["🕰️ Zur Decke leuchten",clockB],
+  ["🕰️ In den Speisesaal",speisesaal],
   ["🪵 Lose Bodenleiste prüfen",hallBoard],
+  ["🧥 Manteltasche der alten Garderobe durchsuchen",()=>hiddenFragment("hall_coat",hall,"In der Manteltasche ist nur alter Staub.")],
   ["📚 Archiv",archive],
   ["🧸 Kinderzimmer",kids],
   ["⬇ Keller",basement],
@@ -1062,7 +1176,7 @@ var chorus=new Audio('ende-iv-drei-stimmen.mp3');chorus.volume=.11;endFourAudio=
  a.play().catch(function(){toast('Bitte Audio-Wiedergabe im Browser erlauben.')});
 }
 
-function clockB(){clockPuzzle(1,hall)}
+function clockB(){speisesaal()}
 
 
 function falseExit(){
@@ -1098,6 +1212,9 @@ function bedroom(){
  '<p>Unter der alten Kommode liegt eine staubige Ersatzbatterie.</p><p>Sechs Schriftstücke sind hier verstreut. Manche Wörter sind noch lesbar. Was geschah in der Nacht, als Romina und Silas verschwanden?</p>'+
  (S.flags.letterSolved?'<div class="note">Die wiederhergestellte Erinnerung liegt offen auf dem Schreibtisch.</div>':'<p class="muted">Auf dem Schreibtisch liegt ein unvollständiger Satz. Du kannst die Fundstücke jederzeit erneut ansehen.</p>');
  render('DAS SCHLAFZIMMER',text,[
+... (S.variant.workshopDollRoom==='Schlafzimmer'?[['🪆 Eine alte Puppe auf der Kommode untersuchen',rominasFirstDoll]]:[]),
+  ['🖼️ Kleinen Bilderrahmen am Bett umdrehen',()=>hiddenFragment('bedroom_frame',bedroom,'Hinter dem Bild ist nur vergilbtes Papier.')],
+  ['📦 Holzkästchen auf der Kommode öffnen',()=>hiddenFragment('bedroom_box',bedroom,'Das Holzkästchen ist leer.')],
   ['🖋️ Den alten Schreibtisch untersuchen',bedroomDesk],
   ['✉️ Verwaschene Briefe durchsuchen',bedroomLetters],
   ['🛏️ Unter das Bett schauen',bedroomBed],
@@ -1417,7 +1534,7 @@ function bedroomWardrobe(){
 function bathroom(){
  render('DAS BADEZIMMER',
  '<p>Die Fliesen sind kalt. In einer alten Badewanne steht dunkles, unbewegtes Wasser. Ein schwerer Vorhang hängt bis zum Boden.</p><p>Aus dem Wasserhahn fällt ein einzelner Tropfen. Danach ist es wieder still.</p>',
- [['🛁 Die Badewanne untersuchen',bathTub],['🧺 Den Wäscheschrank öffnen',bathLinen],['🪞 Den beschlagenen Spiegel betrachten',bathMirror],['⬅ Zurück in den Flur',hall]],'Badezimmer');
+ [... (S.variant.workshopDollRoom==='Badezimmer'?[['🪆 Eine alte Puppe im Wäscheschrank untersuchen',rominasFirstDoll]]:[]),['🪞 Rückseite des Badezimmerspiegels prüfen',()=>hiddenFragment('bath_mirror_back',bathroom,'Hinter dem Spiegel ist nichts.')],['🧺 Saum der alten Handtücher prüfen',()=>hiddenFragment('bath_linen_seam',bathroom,'Die Handtücher sind brüchig und leer.')],['🛁 Die Badewanne untersuchen',bathTub],['🧺 Den Wäscheschrank öffnen',bathLinen],['🪞 Den beschlagenen Spiegel betrachten',bathMirror],['⬅ Zurück in den Flur',hall]],'Badezimmer');
 }
 function bathTub(){
  render('DIE BADEWANNE','<p>Hinter dem Vorhang ist genug Platz, um dich tief in die Wanne zu ducken. Der Stoff lässt kaum Licht hindurch.</p>',[
@@ -1450,21 +1567,15 @@ var STAGE_CLUE_TEXT=[
 function ensureStageVariant(){
  if(!S.variant)return;
  if(!S.variant.stageMap)S.variant.stageMap=shuffle(STAGE_MARKS);
- if(!S.variant.stageLocations)S.variant.stageLocations=shuffle(STAGE_ROOMS);
  if(!S.variant.stageOrder)S.variant.stageOrder=shuffle([0,1,2,3,4,5]);
 }
-function stageClueAt(room){
+function stageClue(i,back){
  ensureStageVariant();
- if(!S.variant)return -1;
- return S.variant.stageLocations.indexOf(room);
-}
-function stageClue(room){
- var i=stageClueAt(room);
- if(i<0)return;
- if(i>=4&&!S.flags.pictureSolved){toast('Hier scheint etwas zu fehlen.');return}
+ if(i<0||i>=6)return back();
+ S.flags['stageClueFound'+i]=true;
  render('EINE VERBORGENE VERBINDUNG',
- '<p>'+STAGE_CLUE_TEXT[i]+'</p><div class="note">Auf der Rückseite: '+STAGE_PUPPETS[i]+'<br>Auf der Kontaktlasche: '+S.variant.stageMap[i]+'</div><p>Beide Markierungen gehören zusammen. Beim nächsten Spieldurchlauf können die Fundorte und Verbindungen anders sein.</p>',
- [['⬅ Zurück',function(){if(room==='Startkammer')startRoom();else if(room==='Flur')hall();else if(room==='Archiv')archive();else if(room==='Kinderzimmer')kids();else if(room==='Keller')basement();else mirrorRoom()}]],room);
+ '<p>'+STAGE_CLUE_TEXT[i]+'</p><div class="note">Auf der Rückseite: '+STAGE_PUPPETS[i]+'<br>Auf der Kontaktlasche: '+S.variant.stageMap[i]+'</div><p>Du merkst dir die beiden Zeichen. Sie scheinen zusammenzugehören.</p>',
+ [['⬅ Zurück',back]],S.room);
 }
 var stageSfx=null,stageSounds={wrong:new Audio('puppen-schreien.mp3'),right:new Audio('puppen-lachen.mp3')},ritualAudio=null,stageWhisperTimer=null,stageEntered=false,stageWhisperPrimed=false;
 function stageAudio(kind){
@@ -1578,7 +1689,7 @@ function stageWiring(){
    if(Object.keys(S.stageConnections).filter(function(k){return S.stageConnections[k]}).length===6){
     mark('stageWired');
     // Kurze Verzögerung: auch die letzte Puppe kann ihre Rückmeldung geben.
-    setTimeout(function(){if(!S.flags.newDoll_ritual){S.flags.newDoll_ritual=true;newDollScare('ritual');}render('DAS LACHEN HINTER DEM VORHANG','Alle sechs Puppen heben ihre Köpfe. Hinter dem Vorhang fällt ein siebter Faden herab.',[['🔊 Lachen erneut anhören',function(){stageAudio('right')}],['🪡 Zum siebten Faden',stageSeventh],['⬅ Bühne',stageRoom]],'Bühne')},1200);
+    setTimeout(function(){if(!S.flags.newDoll_ritual){S.flags.newDoll_ritual=true;newDollScare('ritual',true);}render('DAS LACHEN HINTER DEM VORHANG','Alle sechs Puppen heben ihre Köpfe. Hinter dem Vorhang fällt ein siebter Faden herab.',[['🔊 Lachen erneut anhören',function(){stageAudio('right')}],['🪡 Zum siebten Faden',stageSeventh],['⬅ Bühne',stageRoom]],'Bühne')},1200);
    }
   };
  });
@@ -1625,21 +1736,22 @@ function archiveCabinetHide(){
 /* ARCHIVE */
 function archive(){stopDaisy();
  render("DAS ARCHIV",
- 'Metallregale voller Akten. Ein vergilbter Bericht nennt Romina und Silas Voss: Beide führten die Rituale gemeinsam durch. Seit der siebten Vorstellung sind sie verschwunden. Eine Schublade enthält eine Batterie.<br><br>Eine dritte Uhr ist in einen Aktenschrank eingelassen. Die Beschriftungen der Archivschubladen sind kaum noch zu lesen.<br><br>Auf dem Boden liegt ein Stück eines zerrissenen Fotos. Hinter einem hohen Aktenschrank ist ein schmaler Spalt.',
+ 'Metallregale voller Akten. Ein vergilbter Bericht nennt Romina und Silas Voss: Beide führten die Rituale gemeinsam durch. Seit der siebten Vorstellung sind sie verschwunden. Eine Schublade enthält eine Batterie.<br><br>Die Beschriftungen der Archivschubladen sind kaum noch zu lesen.<br><br>Auf dem Boden liegen verstreute Papiere. Hinter einem hohen Aktenschrank ist ein schmaler Spalt.',
  [
+... (S.variant.workshopDollRoom==='Archiv'?[['🪆 Eine alte Puppe im Aktenregal untersuchen',rominasFirstDoll]]:[]),
   ["🔋 Batterie nehmen",()=>{battery("archiv");archive()},S.flags["battery_archiv"]],
-  ["🗄️ Aktenschrank untersuchen",clockC],
+  ["🗄️ Aktenschrank untersuchen",archiveCabinetHide],
   ["👁️ Hinter den Aktenschrank schauen",archiveCabinetHide],
   ["📦 Verstaubtes Kästchen zwischen den Akten",memoryBox],
   ["🗃️ Alte Archivschubladen durchsuchen",archiveDrawers],
-  ["🧩 Fragment neben Akte 47 nehmen",()=>piece(3,fragMotif(3),archive)],
+  ["📁 Vergilbte Akte 47 untersuchen",()=>hiddenFragment("archive_file",archive,"Die Seiten enthalten nur alte Berichte.")],
   ["📁 Akte 47 öffnen",archiveFile],
   ["📼 Alten Tonbandapparat untersuchen",archiveTape],
   
   ["⬅ Flur",hall]
  ],"Archiv",true)
 }
-function clockC(){secretFound("wax");clockPuzzle(2,archive)}
+function clockC(){secretFound("wax");speisesaal()}
 
 function archiveFile(){
  if(S.flags.archive47Open)return archive47Contents();
@@ -1701,17 +1813,19 @@ function archive47Contents(){
 /* WERKSTATT – TESTSCHRITT 1: Erste Puppe und Zugang, noch keine Schluesselfertigung. */
 function rominasFirstDoll(){
  var taken=!!S.flags.rominaWorkshopKey;
+ var dollRoom=S.variant.workshopDollRoom||'Kinderzimmer';
+ var dollBack={Kinderzimmer:kids,Schlafzimmer:bedroom,Badezimmer:bathroom,Archiv:archive,Startkammer:startRoom,Keller:basement}[dollRoom]||kids;
  render('ROMINAS ERSTE PUPPE',
-  '<p>Hinter den Kuscheltieren sitzt eine kleine, von Hand gefertigte Puppe. Ihr Kleid ist sorgfaeltig genaeht, doch das Porzellangesicht zeigt feine Risse.</p>'+
+  '<p>Du entdeckst eine kleine, von Hand gefertigte Puppe. Ihr Kleid ist sorgfaeltig genaeht, doch das Porzellangesicht zeigt feine Risse.</p>'+
   '<p>Ein verblasstes Etikett traegt die Worte: <em>„Meine Erste. Sie darf niemals verloren gehen. – R.“</em></p>'+
   (taken?'<p>Die verborgene Naht ist offen. Das Schluesselfach ist leer.</p>':'<p>Unter dem Kleid fuehlst du eine ungewoehnlich harte Stelle. Eine Naht ist mit dunklem Faden verschlossen.</p>'),
   [
    ['🪡 Versteckte Naht vorsichtig oeffnen',function(){
      if(!S.flags.rominaWorkshopKey){mark('rominaWorkshopKey');add('Werkstattschluessel')}
-     render('DAS GEHEIMNIS DER ERSTEN PUPPE','<p>Zwischen Stoff und Holz steckt ein kleiner, schwerer Schluessel. Auf seinem Bart ist eine winzige Marionette eingraviert.</p><p>Du steckst den <strong>Werkstattschluessel</strong> ein. Die Puppe bleibt zurueck.</p>',[['🧸 Zur Puppe',rominasFirstDoll],['⬅ Kinderzimmer',kids]],'Kinderzimmer');
+     render('DAS GEHEIMNIS DER ERSTEN PUPPE','<p>Zwischen Stoff und Holz steckt ein kleiner, schwerer Schluessel. Auf seinem Bart ist eine winzige Marionette eingraviert.</p><p>Du steckst den <strong>Werkstattschluessel</strong> ein. Die Puppe bleibt zurueck.</p>',[['🧸 Zur Puppe',rominasFirstDoll],['⬅ Zurück',dollBack]],dollRoom);
    },taken],
-   ['⬅ Zurueck ins Kinderzimmer',kids]
-  ],'Kinderzimmer');
+   ['⬅ Zurueck',dollBack]
+  ],dollRoom);
 }
 function puppetWorkshop(){
  if(!S.flags.rominaWorkshopKey&&!has('Werkstattschluessel')){
@@ -1720,7 +1834,7 @@ function puppetWorkshop(){
  render('DIE WERKSTATT DER PUPPENSPIELERIN',
   '<p>Staub tanzt im schwachen Licht. Auf einer langen Werkbank liegen Holzrohlinge, Nadeln, Fadenrollen und stumpfe Werkzeuge. Von der Decke haengen unfertige Marionetten.</p>'+
   '<p>An der Wand ist eine Zeichnung von <strong>Tür III</strong> befestigt. Darunter steht: <em>„Nicht jeder Schluessel wird gefunden. Manche muessen geschaffen werden.“</em></p>'+
-  '<p>Eine schwere Vorrichtung auf der Werkbank ist noch unvollstaendig. Fuer die Schluesselfertigung fehlen Materialien und eine Anleitung.</p>',
+  '<p>Eine alte Schluesselmaschine steht auf der Werkbank. Ihr Stromkabel fuehrt durch die Wand in Richtung Keller. Auf dem Gehaeuse steht: <em>Nur mit Strom und drei Werkstuecken.</em></p>',
   [
    ['🪵 Werkbank untersuchen',workshopBench],
    ['📜 Rominas Notizen lesen',workshopNotes],
@@ -1729,18 +1843,35 @@ function puppetWorkshop(){
   ],'Werkstatt',true);
 }
 function workshopBench(){
- render('DIE WERKBANK','<p>Eine alte Feile, ein winziger Schraubstock und mehrere Schluesselrohlinge liegen ordentlich nebeneinander. Die Vorrichtung fuer Tür III ist nicht betriebsbereit.</p><p><em>Die Materialsuche und Schluesselfertigung folgen in einer spaeteren Teststufe.</em></p>',[['⬅ Werkstatt',puppetWorkshop]],'Werkstatt');
+ var power=!!S.flags.workshopPower;
+ var ready=has('Messingrohling III')&&has('Kupferspule')&&has('Stahlschablone');
+ render('ROMINAS SCHLUESSELMASCHINE',
+ '<p>Eine schwere Maschine mit zwei Walzen, einem Schraubstock und einem alten Elektromotor. Ein Kabel fuehrt zum Sicherungskasten im Keller.</p>'+
+ '<p>Strom: <strong>'+(power?'eingeschaltet':'ausgeschaltet')+'</strong>.</p>'+
+ '<p>Benötigt: Messingrohling, Kupferspule und Stahlschablone.</p>'+
+ (S.flags.keyThreeForged?'<p>Auf der Werkbank liegt nur noch feiner Metallstaub. Schluessel III ist fertig.</p>':''),
+ [
+ ['🔩 Messingrohling aus der Werkbankschublade nehmen',function(){add('Messingrohling III');workshopBench()},has('Messingrohling III')],
+ ['⚙️ Maschine starten',function(){
+   if(!S.flags.workshopPower)return render('KEIN STROM','Der Motor bleibt stumm. Ein Schild verweist auf den Sicherungskasten im Keller.',[['⬅ Werkbank',workshopBench]],'Werkstatt');
+   if(!ready)return render('DIE MASCHINE STOCKT','Die Walzen drehen kurz an, doch es fehlen Werkstücke. Rominas Notiz nennt Messing, Kupfer und eine Stahlschablone.',[['⬅ Werkbank',workshopBench]],'Werkstatt');
+   mark('keyThreeForged');add('Schlüssel III');
+   render('SCHLUESSEL III','Das Licht flackert. Die Walzen drehen sich langsam, Metall kreischt. Dann faellt ein warmer Schluessel auf die Werkbank. In seinem Bart ist eine winzige Marionette eingraviert.',[['🗝️ Zur Werkstatt',puppetWorkshop]],'Werkstatt');
+ },!!S.flags.keyThreeForged],
+ ['⬅ Werkstatt',puppetWorkshop]
+ ],'Werkstatt');
 }
 function workshopNotes(){
- render('ROMINAS AUFZEICHNUNGEN','<div class="note">Meine erste Puppe bewahrte den Weg zu meinem liebsten Ort. Hier konnte ich erschaffen, was draussen niemand verstehen wollte.<br><br>Die dritte Tuer verlangt mehr als einen gewoehnlichen Schluessel.</div>',[['⬅ Werkstatt',puppetWorkshop]],'Werkstatt');
+ render('ROMINAS AUFZEICHNUNGEN','<div class="note">Meine erste Puppe bewahrte den Weg zur Werkstatt. Die dritte Tuer verlangt einen gefertigten Schluessel. Messing liegt in der Werkbank, Kupfer beim alten Kellerwerkzeug, die Stahlschablone bei den unfertigen Puppen. Erst wenn der Keller Strom liefert, darf die Maschine anlaufen.</div>',[['⬅ Werkstatt',puppetWorkshop]],'Werkstatt');
 }
 function workshopPuppets(){
- render('DIE UNFERTIGEN','<p>Sechs halbfertige Puppen haengen an duennen Schnueren. Eine siebte Halterung ist leer. Unter ihr liegt ein abgerissener Faden.</p>',[['⬅ Werkstatt',puppetWorkshop]],'Werkstatt');
+ render('DIE UNFERTIGEN','<p>Sechs halbfertige Puppen haengen an duennen Schnueren. Eine siebte Halterung ist leer. Darunter liegt ein duennes Stahlblech mit Schluesselkonturen.</p>',[['🗝️ Stahlschablone untersuchen',function(){add('Stahlschablone');workshopPuppets()},has('Stahlschablone')],['⬅ Werkstatt',puppetWorkshop]],'Werkstatt');
 }
 /* KIDS — TESTSCHRITT 2: zwei neue Verstecke, noch ohne Jagdregeln. */
 function kidsCurtain(){
  render('HINTER DEM VORHANG','<p>Ein schwerer, staubiger Vorhang hängt vor dem Kinderzimmerfenster. Dahinter ist gerade genug Platz, um stillzustehen.</p>',[
   ['🪟 Hinter dem Vorhang verstecken',function(){enterHiding('kinder_vorhang','HINTER DEM VORHANG','<p>Der Stoff streift deine Wange. Durch einen schmalen Spalt kannst du das Kinderzimmer beobachten. Der Vorhang bewegt sich kaum merklich.</p>',kids,'Kinderzimmer');}],
+  ['🧸 Kuscheltiere genauer durchsuchen',()=>hiddenFragment('kids_plush',kidsPlushPile,'Zwischen den Stofftieren liegt nur Staub.')],
   ['⬅ Zurück',kids]
  ],'Kinderzimmer');
 }
@@ -1754,15 +1885,15 @@ function kidsPlushPile(){
 function kids(){
  scheduleKidsSound();
  render("DAS KINDERZIMMER",
- 'Verblasste Tapete. Ein leeres Bett. An der Wand steht in Rominas Schrift: „Ich gab ihnen Gesichter. Silas gab ihnen Stimmen. Wir wussten, was wir taten.“ Drei Bilder hängen schief.<br><br>Unter dem Bett glitzert etwas.<br><br>Eine Spieluhr spielt vier Töne in Endlosschleife.<br><br>Vor dem Fenster hängt ein schwerer Vorhang. In der Ecke liegt ein Haufen alter Kuscheltiere.',
+ 'Verblasste Tapete. Ein leeres Bett. An der Wand steht in Rominas Schrift: „Ich gab ihnen Gesichter. Silas gab ihnen Stimmen. Wir wussten, was wir taten.“ Drei Bilder hängen schief.<br><br>Unter dem Bett liegt ein alter Teddy.<br><br>Eine Spieluhr spielt vier Töne in Endlosschleife.<br><br>Vor dem Fenster hängt ein schwerer Vorhang. In der Ecke liegt ein Haufen alter Kuscheltiere.',
  [
-  ["🧸 Teddy unter dem Bett ansehen",()=>piece(1,fragMotif(1),kids)],
+  ["🧸 Teddy unter dem Bett ansehen",()=>hiddenFragment("kids_teddy",kids,"Der Teddy ist staubig und sein Fell aufgerissen.")],
   ["🖼️ Die drei Bilder ansehen",kidsPictures],
   ["🔍 Spieluhrgehäuse genauer betrachten",musicBoxClue],
   ["🎵 Spieluhr untersuchen",musicBox],
   ["🪟 Vorhang am Fenster untersuchen",kidsCurtain],
   ["🧸 Alten Kuscheltierhaufen untersuchen",kidsPlushPile],
-  ["🪆 Eine ungewoehnliche alte Puppe untersuchen",rominasFirstDoll],
+  ...(S.variant.workshopDollRoom==='Kinderzimmer'?[['🪆 Eine alte Puppe zwischen den Kuscheltieren untersuchen',rominasFirstDoll]]:[]),
   ["🔋 Batterie aus dem Schrank nehmen",()=>{battery("kinderzimmer");kids()},S.flags["battery_kinderzimmer"]],
   ["⬅ Flur",hall]
  ],"Kinderzimmer",true)
@@ -1771,7 +1902,7 @@ function kidsPictures(){
  secretFound("portrait");var d=S.variant.mirrorDigits;
  render("DIE DREI BILDER",
  'Bild 1 zeigt ein Haus mit <strong>'+d[0]+'</strong> beleuchteten Fenstern.<br><br>Bild 2 zeigt zwei Menschen vor <strong>'+d[1]+'</strong> Kerzen.<br><br>Bild 3 zeigt ein Kind mit <strong>'+d[2]+'</strong> Ballons.<br><br>Hinter dem dritten Rahmen löst sich die Tapete.',
- [["🧩 Fragment hinter Bild 3 nehmen",()=>piece(4,fragMotif(4),kids)],["⬅ Zurück",kids]],"Kinderzimmer");
+ [["🖼️ Dritten Bilderrahmen umdrehen",()=>hiddenFragment("kids_picture",kidsPictures,"Auf der Rückseite kleben Reste alter Tapete.")],["⬅ Zurück",kids]],"Kinderzimmer");
 }
 function musicBoxClue(){
  render("DAS GEHÄUSE DER SPIELUHR",
@@ -1922,6 +2053,7 @@ var boxWhisperTimers=[],whisperStarted=false,whisperIndex=0,whisperFinished=fals
 function basementChestHide(){
  render('DIE ALTE TRUHE','<p>In einer Kellerecke steht eine große Holztruhe mit rostigen Beschlägen. Der Deckel lässt sich vorsichtig anheben. Innen riecht es nach feuchtem Holz.</p>',[
   ['📦 In die Truhe kriechen',function(){enterHiding('keller_truhe','IN DER ALTEN TRUHE','<p>Der Deckel sinkt über dir herab. Zwischen den Holzlatten dringt ein dünner Lichtstreifen hindurch. Jeder Atemzug klingt hier viel zu laut.</p>',basement,'Keller');}],
+  ['📦 Truhenboden abtasten',()=>hiddenFragment('basement_chest',basementChestHide,'Die Truhe ist leer.')],
   ['⬅ Zurück',basement]
  ],'Keller');
 }
@@ -1929,21 +2061,21 @@ function basementChestHide(){
 function basement(){stopDaisy();
  render("DER KELLER",
  (S.light?'Deine Taschenlampe flackert.':'Fast völlige Dunkelheit.')+
- '<br><br>Eine vierte Uhr liegt zerbrochen am Boden. An einem verrosteten Werkzeugkasten klebt ein halb abgerissenes Etikett.<br><br>Daneben: ein Sicherungskasten, ein roter Scanner und ein weiteres Fotofragment.<br><br>Hinter den Rohren hörst du langsames Atmen. In der Ecke steht eine alte Holztruhe.',
+ '<br><br>An einem verrosteten Werkzeugkasten klebt ein halb abgerissenes Etikett.<br><br>Daneben: ein Sicherungskasten, ein roter Scanner und eine Reihe rostiger Rohre.<br><br>Hinter den Rohren hörst du langsames Atmen. In der Ecke steht eine alte Holztruhe.',
  [
+... (S.variant.workshopDollRoom==='Keller'?[['🪆 Eine alte Puppe auf der Holztruhe untersuchen',rominasFirstDoll]]:[]),
   ["🔦 Taschenlampe an/aus",()=>{toggleLight();basement()}],
-  ["🔎 Glasscherben untersuchen",clockD],
   ["🧰 Werkzeugkasten untersuchen",basementTools],
   ["📦 Alte Holztruhe untersuchen",basementChestHide],
   ["🧱 Lose Mauerplatte untersuchen",cellarElixir],
-  ["🧩 Fragment bei den Rohren nehmen",()=>piece(5,fragMotif(5),basement)],
+  ["🔩 Rostige Rohrschellen untersuchen",()=>hiddenFragment("basement_pipes",basement,"Die Rohre sind kalt und verrostet.")],
   ["⚡ Sicherungskasten",fuseBox],
   ["🩸 Scanner",scanner],
   ["👂 Dem Atmen folgen",breathing],
   ["⬅ Flur",hall]
  ],"Keller",true)
 }
-function clockD(){clockPuzzle(3,basement)}
+function clockD(){speisesaal()}
 
 function breathing(){dollJumpscare(false);
  secretFound("pipes");
@@ -1956,9 +2088,10 @@ function breathing(){dollJumpscare(false);
 function fuseBox(){
  if(!S.flags.clockSolved)return render("DER SICHERUNGSKASTEN",'Vier Sicherungen tragen dieselben Zeichen wie die Uhren.<br><br>Du kennst die richtige Reihenfolge noch nicht.',[["⬅ Zurück",basement]],"Keller");
  if(!S.flags.basementSequence)return basementSequence();
+ if(!S.flags.workshopPower)mark('workshopPower');
  add("Silberschlüssel");
  render("DER SICHERUNGSKASTEN",
- 'Die richtige Reihenfolge aktiviert ein verborgenes Fach.<br><br>Darin liegt ein <strong>Silberschlüssel</strong>.',
+ 'Die richtige Reihenfolge aktiviert ein verborgenes Fach. Ein tiefes Brummen geht durch die Wand: Die alte Werkstatt hat wieder Strom.<br><br>Darin liegt ein <strong>Silberschlüssel</strong>.',
  [["⬅ Keller",basement]],"Keller")
 }
 function basementSequence(){
@@ -1985,8 +2118,9 @@ function mirrorRoom(){stopDaisy();
  [
   ["🕰️ Zeichen im Rahmen ansehen",clockMaster],
   ["🪞 Den vierten Spiegel berühren",mirrorTouch],
-  ["🧩 Fragment im Spiegelrahmen nehmen",()=>piece(6,fragMotif(6),mirrorRoom)],
+  ["🪞 Spiegelrahmen von hinten prüfen",()=>hiddenFragment("mirror_frame",mirrorRoom,"Der Rahmen ist rissig, aber leer.")],
   ["🪵 Alte Fußleisten untersuchen",hiddenEmergencyBattery],
+  ["🪵 Lose Fußleiste am Spiegel prüfen",()=>hiddenFragment("mirror_base",mirrorRoom,"Dahinter ist nur Mauerwerk.")],
   ["⬅ Flur",hall]
  ],"Spiegelsaal",true)
 }
@@ -2055,7 +2189,7 @@ function escapeDoors(){
    [["⬅ Noch nicht",escapeDoors]],"Flur");
  }],
  ["🚪 Tür II untersuchen",function(){render("TÜR II","Ein anderes Schloss. Dein Schlüssel passt nicht. Dieser Fluchtweg bleibt vorerst versiegelt.",[["⬅ Zurück",escapeDoors]],"Flur")}],
- ["🚪 Tür III untersuchen",function(){render("TÜR III","Auf der anderen Seite ist ein leises Scharren zu hören. Das Schloss lässt sich mit Schlüssel I nicht öffnen.",[["⬅ Zurück",escapeDoors]],"Flur")}],
+ ["🚪 Tür III untersuchen",function(){if(has("Schlüssel III"))return render("TÜR III — DIE SCHWELLE","Schlüssel III passt. Das Schloss dreht sich, und die Tür öffnet einen Spalt. Dahinter wartet ein dunkler Gang. Der letzte Abschnitt des guten Endes wird als Nächstes ausgearbeitet.",[["⬅ Zurück",escapeDoors]],"Flur");render("TÜR III","Auf der anderen Seite ist ein leises Scharren zu hören. Das Schloss verlangt einen eigens gefertigten Schlüssel III.",[["⬅ Zurück",escapeDoors]],"Flur")}],
  ["⬅ Flur",hall]
  ],"Flur");
 }
@@ -2184,13 +2318,13 @@ function portraitAftermath(){
 }
 
 /* PICTURE PUZZLE */
-var fragmentNames={1:"Teddy",2:"Standuhr",3:"Akte",4:"Ballons",5:"Rohre",6:"Spiegel"};
+var fragmentNames={1:"Teddy",2:"Standuhr",3:"Puppe",4:"Ballons",5:"Hölzerne Hand",6:"Spiegel"};
 function piece(n,motif,back){
  if(S.pieces.indexOf(n)<0){
    S.pieces.push(n);
    add("Fragment "+n+" — "+motif);
  }
- var found='<div class="panel"><strong>FRAGMENT '+n+' / 6</strong><br>Darauf ist deutlich zu erkennen: <strong>'+motif+'</strong>.</div><p>Die Nummer ist auf der Rückseite eingeritzt.</p>';
+ var found='<div class="panel"><strong>Oh, du hast ein Bildfragment gefunden: '+motif+' '+n+'!</strong></div><p>Die Nummer ist auf der Rückseite eingeritzt.</p>';
  if(S.pieces.length>=6){
    render("FOTOFRAGMENT "+n,
    found+'Du hast jetzt alle sechs nummerierten Fragmente.<br><br>Der leere Bilderrahmen in der Startkammer könnte jetzt wichtig sein.',
