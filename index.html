@@ -1105,6 +1105,7 @@ function hall(){stopDaisy();
  [
   ["🔦 Taschenlampe an/aus",()=>{toggleLight();hall()}],
   ["🕰️ In den Speisesaal",speisesaal],
+  ["🍲 In die verlassene Küche",kitchen],
   ["🪵 Lose Bodenleiste prüfen",hallBoard],
   ["🧥 Manteltasche der alten Garderobe durchsuchen",()=>hiddenFragment("hall_coat",hall,"In der Manteltasche ist nur alter Staub.")],
   ["📚 Archiv",archive],
@@ -1698,32 +1699,50 @@ var ritualDialogueAudio=null;
 function stopRitualDialogue(){
  if(ritualDialogueAudio){ritualDialogueAudio.pause();ritualDialogueAudio.currentTime=0;}
 }
+function puppeteerKeyScene(which){
+ S.room='Bühne';
+ var good=which===3;
+ if(good){
+  if(!has('Schlüssel III'))add('Schlüssel III');
+  mark('ritualGoodKey');
+ }else{
+  if(!has('Schlüssel I'))add('Schlüssel I');
+  mark('ritualBadKey');
+ }
+ mark('puppeteerKeyGiven');
+ render('DIE HAND HINTER DEM VORHANG',
+ '<p>Das Licht flackert. Hinter dem schweren Vorhang knackt trockenes Holz.</p>'+ 
+ '<p>Eine lange, gelenkige hölzerne Hand schiebt sich langsam hervor. Zwischen ihren Fingern hängt ein alter Schlüssel.</p>'+ 
+ '<p>Du nimmst <strong>Schlüssel '+(good?'III':'I')+'</strong>. Die Finger schließen sich um die leere Luft, dann verschwindet die Hand.</p>'+ 
+ '<p>Ein verzerrtes Lachen hallt durch die Bühne.</p><div class="note"><em>„Du entscheidest, wo du hingehen willst.“</em></div>',
+ [['🗝️ Zu den drei Türen',escapeDoors],['⬅ Zurück in den Flur',hall]],'Bühne');
+}
 function stageSeventh(){
  S.room='Bühne';if(!S.flags.stageWired)return stageRoom();
+ if(S.flags.ritualChoice==='bad')return puppeteerKeyScene(1);
+ if(S.flags.ritualChoice==='good')return puppeteerKeyScene(3);
  if(!S.ritualDialogueVariant)S.ritualDialogueVariant=Math.random()<.5?'romina':'silas';
  if(!S.ritualDialogueHeard){
   var file=S.ritualDialogueVariant==='romina'?'ritual-romina-ehrlich-silas-luegt.mp3':'ritual-silas-ehrlich-romina-luegt.mp3';
-  stopRitualDialogue();
-  ritualDialogueAudio=new Audio(file);ritualDialogueAudio.preload='auto';ritualDialogueAudio.volume=.83;
+  stopRitualDialogue();ritualDialogueAudio=new Audio(file);ritualDialogueAudio.preload='auto';ritualDialogueAudio.volume=.83;
   if(ritualAudio&&!ritualAudio.paused)ritualAudio.pause();
   if(rominaPhraseAudio&&!rominaPhraseAudio.paused)rominaPhraseAudio.pause();
   var previousMusic=music.volume;music.volume=Math.min(previousMusic,.10);
   function complete(){S.ritualDialogueHeard=true;music.volume=previousMusic;stageSeventh();}
   ritualDialogueAudio.onended=complete;
   ritualDialogueAudio.onerror=function(){toast('Ritualgespräch konnte nicht geladen werden.');complete()};
-  render('ZWEI STIMMEN IM DUNKELN',
-   '<p>Die sechs Marionetten sind verbunden. Der siebte Faden senkt sich herab. Plötzlich beginnen Romina und Silas zu sprechen …</p><p>Höre zu, bevor du dich entscheidest.</p>',
+  render('ZWEI STIMMEN IM DUNKELN','<p>Die sechs Marionetten sind verbunden. Der siebte Faden senkt sich herab. Romina und Silas beginnen zu sprechen …</p><p>Höre zu, bevor du dich entscheidest.</p>',
    [['▶ Gespräch anhören',function(){ritualDialogueAudio.play().catch(function(){toast('Audio blockiert – bitte erneut starten.')})}],
     ['⏭ Gespräch überspringen',function(){stopRitualDialogue();complete()}],
     ['⬅ Zurück zur Bühne',function(){stopRitualDialogue();music.volume=previousMusic;stageRoom()}]],'Bühne');
-  ritualDialogueAudio.play().catch(function(){toast('Bitte „Gespräch anhören“ drücken.')});
-  return;
+  ritualDialogueAudio.play().catch(function(){toast('Bitte „Gespräch anhören“ drücken.')});return;
  }
  render('DER SIEBTE FADEN',
  '<p>Die sechs Marionetten sind verbunden. Eine einzelne Schnur hängt über deinem Kopf.</p><p>Romina und Silas widersprechen sich. Wem glaubst du?</p><div class="note">SECHS KÖRPER. EIN SIEBTER PLATZ.<br>WER DEN FADEN TRÄGT, GEHÖRT ZUR VORSTELLUNG.</div><p>Der Faden ist kalt.</p>',
  [['🎙️ Gespräch erneut anhören',function(){S.ritualDialogueHeard=false;stageSeventh()}],
- ['🪡 Den siebten Faden an mir befestigen',function(){end('DIE SIEBTE MARIONETTE','<p>Der Knoten zieht sich von selbst fest. Deine Finger bewegen sich, ohne dass du es willst.</p><p>Über dir lacht etwas hinter dem Vorhang. Dein letzter eigener Gedanke verstummt.</p><h3>ENDE — DIE SIEBTE MARIONETTE</h3>')}],
- ['✋ Den Faden nicht berühren',stageRoom],['⬅ Zurück in den Flur',hall]],'Bühne');
+ ['🪡 Den siebten Faden an mir befestigen',function(){render('DER LETZTE KNOTEN','<p>Wenn du den Faden an dir befestigst, wirst du Teil der Vorstellung. Diese Entscheidung lässt sich nicht rückgängig machen.</p>',[['🪡 Faden wirklich befestigen',function(){S.flags.ritualChoice='bad';puppeteerKeyScene(1)}],['⬅ Noch nicht',stageSeventh]],'Bühne')}],
+ ['✋ Den Faden unberührt lassen',function(){S.flags.ritualChoice='good';puppeteerKeyScene(3)}],
+ ['⬅ Zurück in den Flur',hall]],'Bühne');
 }
 
 /* TESTSCHRITT 3: Archivversteck hinter einem Aktenschrank. */
@@ -1833,7 +1852,7 @@ function puppetWorkshop(){
  }
  render('DIE WERKSTATT DER PUPPENSPIELERIN',
   '<p>Staub tanzt im schwachen Licht. Auf einer langen Werkbank liegen Holzrohlinge, Nadeln, Fadenrollen und stumpfe Werkzeuge. Von der Decke haengen unfertige Marionetten.</p>'+
-  '<p>An der Wand ist eine Zeichnung von <strong>Tür III</strong> befestigt. Darunter steht: <em>„Nicht jeder Schluessel wird gefunden. Manche muessen geschaffen werden.“</em></p>'+
+  '<p>An der Wand ist eine Zeichnung von <strong>Tür III</strong> befestigt. Darunter steht: <em>„Nicht jeder Schlüssel wird geschenkt. Manche müssen geschaffen werden.“</em></p>'+
   '<p>Eine alte Schluesselmaschine steht auf der Werkbank. Ihr Stromkabel fuehrt durch die Wand in Richtung Keller. Auf dem Gehaeuse steht: <em>Nur mit Strom und drei Werkstuecken.</em></p>',
   [
    ['🪵 Werkbank untersuchen',workshopBench],
@@ -1849,14 +1868,15 @@ function workshopBench(){
  '<p>Eine schwere Maschine mit zwei Walzen, einem Schraubstock und einem alten Elektromotor. Ein Kabel fuehrt zum Sicherungskasten im Keller.</p>'+
  '<p>Strom: <strong>'+(power?'eingeschaltet':'ausgeschaltet')+'</strong>.</p>'+
  '<p>Benötigt: Messingrohling, Kupferspule und Stahlschablone.</p>'+
- (S.flags.keyThreeForged?'<p>Auf der Werkbank liegt nur noch feiner Metallstaub. Schluessel III ist fertig.</p>':''),
+ (S.flags.keyThreeForged?'<p>Auf der Werkbank liegt nur noch feiner Metallstaub. Schlüssel III wurde bereits hergestellt.</p>':''),
  [
  ['🔩 Messingrohling aus der Werkbankschublade nehmen',function(){add('Messingrohling III');workshopBench()},has('Messingrohling III')],
  ['⚙️ Maschine starten',function(){
    if(!S.flags.workshopPower)return render('KEIN STROM','Der Motor bleibt stumm. Ein Schild verweist auf den Sicherungskasten im Keller.',[['⬅ Werkbank',workshopBench]],'Werkstatt');
    if(!ready)return render('DIE MASCHINE STOCKT','Die Walzen drehen kurz an, doch es fehlen Werkstücke. Rominas Notiz nennt Messing, Kupfer und eine Stahlschablone.',[['⬅ Werkbank',workshopBench]],'Werkstatt');
-   mark('keyThreeForged');add('Schlüssel III');
-   render('SCHLUESSEL III','Das Licht flackert. Die Walzen drehen sich langsam, Metall kreischt. Dann faellt ein warmer Schluessel auf die Werkbank. In seinem Bart ist eine winzige Marionette eingraviert.',[['🗝️ Zur Werkstatt',puppetWorkshop]],'Werkstatt');
+   mark('keyThreeForged');
+   if(!has('Schlüssel III'))add('Schlüssel III');
+   render('SCHLUESSEL III','Das Licht flackert. Die Walzen drehen sich langsam, Metall kreischt. Dann fällt Schlüssel III in die Auffangmulde. Du nimmst ihn an dich. Der Weg zu Tür III ist offen – ganz ohne Ritual.',[['🗝️ Zur Werkstatt',puppetWorkshop]],'Werkstatt');
  },!!S.flags.keyThreeForged],
  ['⬅ Werkstatt',puppetWorkshop]
  ],'Werkstatt');
@@ -2103,12 +2123,44 @@ function basementSequence(){
 }
 function scanner(){
  secretFound("scanner");
- if(!has("Spiegelsplitter"))return render("DER SCANNER",'Der Scanner verlangt eine Blutprobe.<br><br>Du brauchst etwas Scharfes.',[["⬅ Zurück",basement]],"Keller");
- mark("blood");
- add("Blutmarkierung");
- render("ZUGANG BESTÄTIGT",
- 'Der Scanner leuchtet grün.<br><br><strong>SUBJEKT 11 BESTÄTIGT</strong><br><br>Ein Fach öffnet sich. Darin liegt eine schwarze Karte:<div class="note">DER ECHTE AUSGANG<br>HAT KEINEN GRIFF.</div>',
- [["⬅ Keller",basement]],"Keller")
+ if(S.flags.silasRecipeFound)return render('DER OFFENE BLUTSCANNER','Das Fach steht offen. Silas’ Rezept hast du bereits eingesteckt.',[['⬅ Keller',basement]],'Keller');
+ if(!has('Altes Küchenmesser'))return render('DER BLUTSCANNER','Eine rote Kontrollleuchte blinkt. Auf dem Display steht: <em>BLUTPROBE ERFORDERLICH</em>. Du brauchst ein geeignetes Werkzeug.',[['⬅ Keller',basement]],'Keller');
+ render('DER BLUTSCANNER','Das alte Küchenmesser liegt schwer in deiner Hand. Du könntest eine kleine Blutprobe abgeben.',[
+ ['🩸 Blutprobe abgeben',function(){mark('blood');mark('silasRecipeFound');add('Silas’ Rezept');render('DAS GEHEIME FACH','Die Anzeige wechselt auf Grün. Hinter einer Metallklappe liegt ein vergilbtes Blatt mit Silas’ Unterschrift: <strong>Das Elixier der Weisheit</strong>. Die Anweisungen sind in Rätseln geschrieben. In der Küche könnte man die Zutaten finden.',[['📜 Rezept lesen',silasRecipe],['⬅ Keller',basement]],'Keller')}],['⬅ Keller',basement]],'Keller');
+}
+function silasRecipe(){
+ if(!S.flags.silasRecipeFound)return kitchen();
+ render('SILAS’ REZEPT — DAS ELIXIER DER WEISHEIT',
+ '<div class="note">Sechs Gaben öffnen den Geist. Nimm das Blatt, das Erinnerungen bewahrt; das bittere Kraut, das Träume vertreibt; das Wasser, das nur den Mond gesehen hat; den Staub des hellen Metalls; den Zweig, der nach dem Garten duftet; und die Asche eines erloschenen Feuers.<br><br>Meide die süße Verlockung, das Gift der roten Beere, das gewöhnliche Salz und das schwarze Öl.<br><br><em>— Silas</em></div>',
+ [['⬅ Zur Küche',kitchen]],'Küche');
+}
+var silasIngredients=['Salbei','Wermut','Mondwasser','Silberstaub','Rosmarin','Holzasche','Honig','Tollkirsche','Salz','Schwarzes Öl'];
+var silasCorrect=['Salbei','Wermut','Mondwasser','Silberstaub','Rosmarin','Holzasche'];
+function kitchen(){stopDaisy();
+ render('DIE VERLASSENE KÜCHE','Ein großer Herd steht unter einer schwarzen Dunsthaube. Zehn beschriftete Gefäße stehen auf einem Regal. Auf dem Arbeitstisch liegt ein altes Küchenmesser. Daneben wartet ein schwerer Kessel.',[
+ ['🔪 Altes Küchenmesser nehmen',function(){add('Altes Küchenmesser');kitchen()},has('Altes Küchenmesser')],
+ ['📜 Silas’ Rezept lesen',silasRecipe,!S.flags.silasRecipeFound],
+ ['⚗️ Zutaten am Kessel mischen',silasCauldron,!S.flags.silasRecipeFound],
+ ['⬅ Flur',hall]],'Küche',true);
+}
+function silasCauldron(){
+ if(S.flags.silasElixirSolved)return render('DER LEERE KESSEL','Silas ist verschwunden. Seine Worte hallen noch nach: „Du kannst alles beenden.“', [['⬅ Küche',kitchen]],'Küche');
+ if(!S.flags.silasRecipeFound)return kitchen();
+ if(!Array.isArray(S.silasSelection))S.silasSelection=[];
+ var chosen=S.silasSelection;
+ var options=silasIngredients.map(function(x){return [(chosen.includes(x)?'☑ ':'☐ ')+x,function(){var i=S.silasSelection.indexOf(x);if(i>=0)S.silasSelection.splice(i,1);else if(S.silasSelection.length<6)S.silasSelection.push(x);else toast('Du kannst nur sechs Zutaten auswählen.');silasCauldron()}]});
+ options.push(['⚗️ Mischung brauen ('+chosen.length+'/6)',silasBrew,chosen.length!==6]);
+ options.push(['📜 Rezept erneut lesen',silasRecipe]);options.push(['⬅ Küche',kitchen]);
+ render('DAS ELIXIER DER WEISHEIT','Wähle genau sechs der zehn Zutaten. Ein falscher Versuch kostet fünf Minuten und 20 % Sanity.<br><br><strong>Gewählt:</strong> '+(chosen.length?chosen.map(esc).join(', '):'noch keine Zutaten'),options,'Küche',true);
+}
+function silasBrew(){
+ var chosen=S.silasSelection||[];
+ if(chosen.length!==6)return silasCauldron();
+ var correct=silasCorrect.every(function(x){return chosen.includes(x)});
+ if(!correct){S.time=Math.max(0,S.time-300);loseSanity(20);S.silasSelection=[];render('DIE FALSCHE MISCHUNG','Der Kessel zischt und das Gebräu wird schwarz. Die Uhr springt fünf Minuten vor. Deine Gedanken verschwimmen. <strong>−5 Minuten, −20 % Sanity.</strong> Du kannst eine neue Mischung versuchen.',[['⚗️ Erneut versuchen',silasCauldron],['⬅ Küche',kitchen]],'Küche');return;}
+ mark('silasElixirSolved');S.silasSelection=[];
+ if(!has('Schlüssel I'))add('Schlüssel I');
+ render('SILAS ERSCHEINT','Das Elixier wird klar. Im aufsteigenden Dampf zeichnet sich Silas’ Gestalt ab. Er tritt aus dem Schatten und legt einen alten Schlüssel auf den Tisch.<br><br><em>„Du kannst alles beenden.“</em><br><br><strong>Schlüssel I erhalten.</strong>',[['🗝️ Schlüssel an dich nehmen',kitchen]],'Küche');
 }
 
 /* MIRROR ROOM */
@@ -2183,13 +2235,11 @@ function escapeDoors(){
  "Drei schwere Türen stehen nebeneinander. In das Holz sind I, II und III geritzt. Die erste Tür trägt eine dunkle, kreisförmige Spur.",
  [
  ["🚪 Tür I untersuchen",function(){
-  if(true)return render("TÜR I","Ein schmales Schlüsselloch. Die Tür ist verschlossen. Der passende Schlüssel liegt irgendwo in der Vergangenheit dieses Hauses.",[["⬅ Zurück",escapeDoors]],"Flur");
-  render("TÜR I — DER ANFANG",
-   "Das Schloss ist alt und verrostet. Dieser Weg ist versiegelt. Der Schlüssel aus Akte 47 gehört zur Eingangstür.",
-   [["⬅ Noch nicht",escapeDoors]],"Flur");
+  if(has('Schlüssel I')&&S.flags.ritualChoice==='bad')return end('DIE SIEBTE MARIONETTE','<p>Schlüssel I dreht sich. Der Faden an deinem Handgelenk spannt sich.</p><p>Hinter der Tür warten sechs Puppen. Ein siebter Platz ist für dich bestimmt.</p><h3>ENDE — DIE SIEBTE MARIONETTE</h3>');
+  render('TÜR I','Das Schloss wartet auf Schlüssel I. Hinter dem Holz bewegt sich etwas an unsichtbaren Fäden.',[['⬅ Zurück',escapeDoors]],'Flur');
  }],
  ["🚪 Tür II untersuchen",function(){render("TÜR II","Ein anderes Schloss. Dein Schlüssel passt nicht. Dieser Fluchtweg bleibt vorerst versiegelt.",[["⬅ Zurück",escapeDoors]],"Flur")}],
- ["🚪 Tür III untersuchen",function(){if(has("Schlüssel III"))return render("TÜR III — DIE SCHWELLE","Schlüssel III passt. Das Schloss dreht sich, und die Tür öffnet einen Spalt. Dahinter wartet ein dunkler Gang. Der letzte Abschnitt des guten Endes wird als Nächstes ausgearbeitet.",[["⬅ Zurück",escapeDoors]],"Flur");render("TÜR III","Auf der anderen Seite ist ein leises Scharren zu hören. Das Schloss verlangt einen eigens gefertigten Schlüssel III.",[["⬅ Zurück",escapeDoors]],"Flur")}],
+ ["🚪 Tür III untersuchen",function(){if(has("Schlüssel III"))return render("TÜR III — DIE SCHWELLE","Schlüssel III passt. Das Schloss dreht sich, und die Tür öffnet einen Spalt. Dahinter wartet ein dunkler Gang. Der letzte Abschnitt des guten Endes wird als Nächstes ausgearbeitet.",[["⬅ Zurück",escapeDoors]],"Flur");render("TÜR III","Auf der anderen Seite ist ein leises Scharren zu hören. Das Schloss verlangt Schlüssel III – entweder aus Rominas Werkstatt oder als Gabe des Puppeteers.",[["⬅ Zurück",escapeDoors]],"Flur")}],
  ["⬅ Flur",hall]
  ],"Flur");
 }
