@@ -1851,6 +1851,17 @@ var ritualDialogueAudio=null;
 function stopRitualDialogue(){
  if(ritualDialogueAudio){ritualDialogueAudio.pause();ritualDialogueAudio.currentTime=0;}
 }
+
+/* V24: separate one-shot key handover voices. */
+var keyHandoverVoice=null;
+function playKeyHandoverVoice(file){
+ if(keyHandoverVoice){keyHandoverVoice.pause();keyHandoverVoice.currentTime=0;keyHandoverVoice=null;}
+ if(!S.sound)return;
+ try{var voice=new Audio(file);keyHandoverVoice=voice;voice.volume=.9;
+ voice.onended=function(){if(keyHandoverVoice===voice)keyHandoverVoice=null;};
+ voice.play().catch(function(){toast('Sprachausgabe blockiert – bitte erneut abspielen.')});
+ }catch(e){console.warn('Schlüssel-Stimme:',e);}
+}
 function puppeteerKeyScene(which){
  S.room='Bühne';
  var good=which===3;
@@ -1862,12 +1873,13 @@ function puppeteerKeyScene(which){
   mark('ritualBadKey');
  }
  mark('puppeteerKeyGiven');
+ playKeyHandoverVoice('puppeteer-schluessel-uebergabe.mp3');
  render('DIE HAND HINTER DEM VORHANG',
  '<p>Das Licht flackert. Hinter dem schweren Vorhang knackt trockenes Holz.</p>'+ 
  '<p>Eine lange, gelenkige hölzerne Hand schiebt sich langsam hervor. Zwischen ihren Fingern hängt ein alter Schlüssel.</p>'+ 
  '<p>Du nimmst <strong>Schlüssel '+(good?'III':'I')+'</strong>. Die Finger schließen sich um die leere Luft, dann verschwindet die Hand.</p>'+ 
  '<p>Ein verzerrtes Lachen hallt durch die Bühne.</p><div class="note"><em>„Du entscheidest, wo du hingehen willst.“</em></div>',
- [['🗝️ Zu den drei Türen',escapeDoors],['⬅ Zurück in den Flur',hall]],'Bühne');
+ [['🔊 Puppeteer erneut anhören',function(){playKeyHandoverVoice('puppeteer-schluessel-uebergabe.mp3')}],['🗝️ Zu den drei Türen',escapeDoors],['⬅ Zurück in den Flur',hall]],'Bühne');
 }
 function stageSeventh(){
  S.room='Bühne';if(!S.flags.stageWired)return stageRoom();
@@ -2315,7 +2327,8 @@ function silasBrew(){
  if(!correct){var elixirPenalty=timePenalty(300);S.time=Math.max(0,S.time-elixirPenalty);loseSanity(20);S.silasSelection=[];render('DIE FALSCHE MISCHUNG','Der Kessel zischt und das Gebräu wird schwarz. Die Uhr springt vor. Deine Gedanken verschwimmen. <strong>−'+Math.floor(elixirPenalty/60)+':'+String(elixirPenalty%60).padStart(2,'0')+' Minuten, −20 % Sanity.</strong> Du kannst eine neue Mischung versuchen.',[['⚗️ Erneut versuchen',silasCauldron],['⬅ Küche',kitchen]],'Küche');return;}
  mark('silasElixirSolved');S.silasSelection=[];
  if(!has('Schlüssel I'))add('Schlüssel I');
- render('SILAS ERSCHEINT','Das Elixier wird klar. Im aufsteigenden Dampf zeichnet sich Silas’ Gestalt ab. Er tritt aus dem Schatten und legt einen alten Schlüssel auf den Tisch.<br><br><em>„Du kannst alles beenden.“</em><br><br><strong>Schlüssel I erhalten.</strong>',[['🗝️ Schlüssel an dich nehmen',kitchen]],'Küche');
+ playKeyHandoverVoice('silas-schluessel-uebergabe.mp3');
+ render('SILAS ERSCHEINT','Das Elixier wird klar. Im aufsteigenden Dampf zeichnet sich Silas’ Gestalt ab. Er tritt aus dem Schatten und legt einen alten Schlüssel auf den Tisch.<br><br><em>„Du kannst alles beenden.“</em><br><br><strong>Schlüssel I erhalten.</strong>',[['🔊 Silas erneut anhören',function(){playKeyHandoverVoice('silas-schluessel-uebergabe.mp3')}],['🗝️ Schlüssel an dich nehmen',kitchen]],'Küche');
 }
 
 /* MIRROR ROOM */
