@@ -193,6 +193,10 @@ body.musicBoxActive #dollScare img{content:url("vorhangmann-jumpscare.jpg");filt
 #newDollScare img{width:100vw;height:100vh;object-fit:contain;filter:contrast(1.28) drop-shadow(0 0 20px #8b102d);animation:newDollLunge .85s cubic-bezier(.13,.85,.22,1) both}
 @keyframes newDollFlash{0%{opacity:0}8%{opacity:1}75%{opacity:1}100%{opacity:0}}
 @keyframes newDollLunge{0%{transform:scale(.60) rotate(-3deg)}55%{transform:scale(1.13) rotate(2deg)}100%{transform:scale(1.35)}}
+
+.libraryListening{position:fixed;inset:0;z-index:850;background:radial-gradient(ellipse at center,#211711,#050405 78%);display:none;align-items:center;justify-content:center;padding:24px;color:#e8d9b8;text-align:center}
+.libraryListening.on{display:flex}.libraryBook{max-width:670px;width:100%;border:1px solid #705b39;background:rgba(15,11,10,.93);padding:32px 22px;box-shadow:0 0 65px #000;border-radius:8px}
+.libraryBook h2{font:normal 30px Georgia,serif;color:#dfc58c}.libraryBook p{line-height:1.7}.libraryBook button{margin:10px;padding:10px 18px}.libraryBook progress{width:90%;accent-color:#a88b59}
 </style>
 </head>
 <body>
@@ -202,7 +206,7 @@ body.musicBoxActive #dollScare img{content:url("vorhangmann-jumpscare.jpg");filt
 <audio id="ritualAudio" src="romina-ritualfluestern.mp3" preload="auto"></audio>
 <audio id="music" src="Kellerflur.mp3" loop preload="auto"></audio>
 <audio id="introMusic" src="intro-spieluhr-sanft.mp3" preload="auto" loop></audio><audio id="introNoise" src="intro-rauschen.mp3" preload="auto" loop></audio><audio id="daisy" src="spieluhr-mit-fluestern.mp3" preload="auto"></audio><audio id="introAudio" src="intro-romina.mp3" preload="auto"></audio>
-<div id="introOverlay" role="dialog" aria-label="Einführung"><div class="introInner"><div class="kicker">DIE VORSTELLUNG BEGINNT</div><div id="introLine" class="whisperLine"></div><button id="introSkip">Intro überspringen</button></div></div><div id="musicOverlay" role="dialog" aria-label="Spieluhr"><div class="introInner"><div class="kicker">DU MUSST ZUHÖREN</div><div class="musicDoll">♟</div><h2>DAISY BELL</h2><div id="whisperLine" class="whisperLine"></div><p id="musicStatus" class="muted">Die Walze dreht sich …</p><button id="musicEscape" style="font-size:12px">🩸 Vorzeitig verlassen (30 Blut)</button></div></div><div id="portraitScene" role="dialog" aria-label="Das vollständige Porträt" aria-modal="true"><div class="stageFrame"><img src="romina-silas-vor-dem-verschwinden.jpg" alt="Romina und Silas auf der alten Bühne"><video id="portraitAnimation" src="puppeteer-befreiung.mp4" preload="auto" playsinline style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#080506"></video><div class="faceDark"></div></div><div id="portraitCaption" class="sceneCaption"></div><button id="portraitSceneSkip" aria-label="Animation überspringen">Animation überspringen</button><img class="scareFace" src="vorhangmann-jumpscare.jpg" alt=""></div><div id="puppeteerEncounter" role="dialog" aria-modal="true" aria-label="The Puppeteer stellt sich vor" style="display:none;position:fixed;inset:0;z-index:920;background:radial-gradient(ellipse,#290912,#030204 75%);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;color:#f5dce3"><img src="vorhangmann-jumpscare.jpg" alt="The Puppeteer" style="width:min(55vw,380px);max-height:55vh;object-fit:contain;filter:brightness(.55) contrast(1.3)"><p id="puppeteerEncounterText" style="font:clamp(18px,3vw,30px) Georgia,serif">Ob versteckt oder nicht … ICH KOMME!</p><button id="puppeteerEncounterContinue" style="display:none">Weitergehen</button></div><div id="spiderScene" role="dialog" aria-modal="true" aria-label="Die Spinne"><div class="spiderIntro" id="spiderIntro">Du hebst die staubige Taschenlampe auf …</div><video class="spiderVideo" id="spiderVideo" src="spinnen-jumpscare.mp4" preload="auto" playsinline aria-label="Eine Spinne springt auf dich zu"></video><div class="spiderQuestion">Bist du dir sicher, dass sie nicht mehr auf dir sitzt?</div></div><div id="letterOverlay" role="dialog" aria-modal="true" aria-label="Rominas Brief"><div class="letterPage"><h2>Der letzte Brief</h2><p id="letterText"></p><button id="letterSkip">Brief vollständig anzeigen</button><button id="letterContinue" style="display:none">Brief anheben</button></div></div><audio id="letterAudio" src="rominas-brief.mp3" preload="auto"></audio><div id="app"></div>
+<div id="introOverlay" role="dialog" aria-label="Einführung"><div class="introInner"><div class="kicker">DIE VORSTELLUNG BEGINNT</div><div id="introLine" class="whisperLine"></div><button id="introSkip">Intro überspringen</button></div></div><div id="musicOverlay" role="dialog" aria-label="Spieluhr"><div class="introInner"><div class="kicker">DU MUSST ZUHÖREN</div><div class="musicDoll">♟</div><h2>DAISY BELL</h2><div id="whisperLine" class="whisperLine"></div><p id="musicStatus" class="muted">Die Walze dreht sich …</p><button id="musicEscape" style="font-size:12px">🩸 Vorzeitig verlassen (30 Blut)</button></div></div><div id="portraitScene" role="dialog" aria-label="Das vollständige Porträt" aria-modal="true"><div class="stageFrame"><img src="romina-silas-vor-dem-verschwinden.jpg" alt="Romina und Silas auf der alten Bühne"><video id="portraitAnimation" src="puppeteer-befreiung.mp4" preload="auto" playsinline style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#080506"></video><div class="faceDark"></div></div><div id="portraitCaption" class="sceneCaption"></div><button id="portraitSceneSkip" aria-label="Animation überspringen">Animation überspringen</button><img class="scareFace" src="vorhangmann-jumpscare.jpg" alt=""></div><div id="puppeteerEncounter" role="dialog" aria-modal="true" aria-label="The Puppeteer stellt sich vor" style="display:none;position:fixed;inset:0;z-index:920;background:radial-gradient(ellipse,#290912,#030204 75%);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;color:#f5dce3"><img src="vorhangmann-jumpscare.jpg" alt="The Puppeteer" style="width:min(55vw,380px);max-height:55vh;object-fit:contain;filter:brightness(.55) contrast(1.3)"><p id="puppeteerEncounterText" style="font:clamp(18px,3vw,30px) Georgia,serif">Ob versteckt oder nicht … ICH KOMME!</p><button id="puppeteerEncounterContinue" style="display:none">Weitergehen</button></div><div id="spiderScene" role="dialog" aria-modal="true" aria-label="Die Spinne"><div class="spiderIntro" id="spiderIntro">Du hebst die staubige Taschenlampe auf …</div><video class="spiderVideo" id="spiderVideo" src="spinnen-jumpscare.mp4" preload="auto" playsinline aria-label="Eine Spinne springt auf dich zu"></video><div class="spiderQuestion">Bist du dir sicher, dass sie nicht mehr auf dir sitzt?</div></div><div id="letterOverlay" role="dialog" aria-modal="true" aria-label="Rominas Brief"><div class="letterPage"><h2>Der letzte Brief</h2><p id="letterText"></p><button id="letterSkip">Brief vollständig anzeigen</button><button id="letterContinue" style="display:none">Brief anheben</button></div></div><audio id="letterAudio" src="rominas-brief.mp3" preload="auto"></audio><div id="libraryListening" class="libraryListening" role="dialog" aria-modal="true" aria-label="Vorlesung im alten Buch"><div class="libraryBook"><div style="font-size:35px">📖</div><h2 id="libraryChapterTitle"></h2><p>Das große Buch erzählt die Geschichte von Romina und Silas.</p><p>Die Welt steht still. Nur die Stimme bleibt.</p><progress id="libraryProgress" value="0" max="100"></progress><p id="libraryProgressLabel">00:00</p><button id="libraryStopButton">Vorlesung abbrechen</button></div></div><audio id="libraryNarrator" preload="none"></audio><div id="app"></div>
 <script>
 (function(){
 "use strict";
@@ -995,7 +999,7 @@ function speisesaal(){stopDaisy();
   var state=S.flags['clock'+n]?' · eingestellt':S.flags['clockHandsInstalled'+n]?' · Zeiger eingesetzt':' · ohne Zeiger';
   actions.push(['🕰️ Uhr '+(n+1)+' – '+prettySymbol(S.variant.clockWords[n])+state,function(){clockPuzzle(n,speisesaal)}]);
  })(i);
- actions.push(['🔎 Unter dem Speisesaal-Sideboard nachsehen',function(){render('DAS SIDEBOARD','Unter einem umgestürzten Silbertablett liegt eine unbenutzte Taschenlampenbatterie.',[['🔋 Batterie einsetzen',function(){battery('speisesaal_sideboard');speisesaal()},!!S.flags.battery_speisesaal_sideboard],['⬅ Zurück',speisesaal]],'Speisesaal') }],['⬅ Zurück in den Flur',hall]);
+ actions.push(['🔎 Unter dem Speisesaal-Sideboard nachsehen',function(){render('DAS SIDEBOARD','Unter einem umgestürzten Silbertablett liegt eine unbenutzte Taschenlampenbatterie.',[['🔋 Batterie einsetzen',function(){battery('speisesaal_sideboard');speisesaal()},!!S.flags.battery_speisesaal_sideboard],['⬅ Zurück',speisesaal]],'Speisesaal') }],['📜 Vergilbten Theaterbrief unter der Tischdecke prüfen',function(){libraryFragment(0,speisesaal)},libraryFound(0)],['⬅ Zurück in den Flur',hall]);
  render('DER VERLASSENE SPEISESAAL',
   'Ein langer Tisch verschwindet im Staub. Vier schwere antike Uhren stehen an der Wand. Ihre Zeiger fehlen. Unter jedem Zifferblatt ist ein anderes Zeichen tief ins Holz geritzt.<br><br>'+ 
   'Ein Schild warnt: <em>VIER ZEITEN. VIER ZEICHEN. KEINE STUNDE VERGISST.</em><br><br>'+ 
@@ -1097,6 +1101,79 @@ function clockAftermath(){
 }
 function clockA(){speisesaal()}
 
+/* BIBLIOTHEK: Sechs eigenständige Geschichten, ein Bonus pro vollständigem Anhören. */
+var libraryTitles=['Die Frau hinter den Fäden', 'Der Mann im Publikum', 'Das Versprechen einer Familie', 'Die Puppe ohne Fäden', 'Die verbotenen Schriften', 'Der Preis des Lebens'];
+var libraryAudios=['bibliothek-kapitel-1.mp3', 'bibliothek-kapitel-2.mp3', 'bibliothek-kapitel-3.mp3', 'bibliothek-kapitel-4.mp3', 'bibliothek-kapitel-5.mp3', 'bibliothek-kapitel-6.mp3'];
+var libraryKinds=['Vergilbter Theaterbrief','Alte Programmseite','Handschriftliche Notiz','Werkstattzeichnung','Lose Buchseite','Zerknitterte Ritualaufzeichnung'];
+var libraryNarrator=document.getElementById('libraryNarrator'),libraryOverlay=document.getElementById('libraryListening');
+var libraryActive=-1,libraryPausedAt=0,libraryOldMusicPlaying=false,libraryOldMusicTime=0;
+function libraryFound(i){return !!S.flags['libraryFound'+i]}
+function libraryHeard(i){return !!S.flags['libraryHeard'+i]}
+function libraryFragment(i,returnFn){
+ if(!libraryFound(i)){mark('libraryFound'+i);add('Geschichtsfragment '+(i+1));}
+ render('EIN STÜCK VERGANGENHEIT','<p>Du findest '+esc(libraryKinds[i].toLowerCase())+'. Die Schrift scheint zu einem alten Buch in der Bibliothek zu gehören.</p><p><strong>Kapitel '+(i+1)+' kann nun im großen Buch ergänzt werden.</strong></p>',[['📖 Zur Bibliothek gehen',libraryRoom],['⬅ Zurück',returnFn]],S.room);
+}
+function libraryRoom(){
+ var actions=[];
+ for(var i=0;i<6;i++)(function(n){
+  var found=libraryFound(n),heard=libraryHeard(n),inserted=!!S.flags['libraryInserted'+n];
+  actions.push(['📜 Kapitel '+(n+1)+' – '+libraryTitles[n]+(heard?' ✓ angehört':inserted?' · im Buch':found?' · Fragment gefunden':' · fehlt'),function(){
+   if(!libraryFound(n))return;
+   if(!S.flags['libraryInserted'+n]){mark('libraryInserted'+n);toast('Die Seite fügt sich in das Buch ein.');}
+   libraryStart(n);
+  },!found]);
+ })(i);
+ actions.push(['⬅ Zurück in den Flur',hall]);
+ render('DIE ALTE BIBLIOTHEK','<p>Staubige Bücherregale reichen bis zur Decke. Auf einem schweren Lesepult liegt ein gewaltiges, unvollständiges Buch.</p><p>Gefundene Briefe, Buchseiten und Notizen lassen sich darin ergänzen. Beim Einfügen beginnt die Geschichte. <strong>Während der Vorlesung steht die Welt still.</strong></p><p>Für jedes vollständig angehörte Kapitel gibt es einmalig <strong>+1 Minute und +10 % Sanity</strong>. Wiederholtes Anhören ist möglich, aber ohne neue Belohnung.</p>',actions,'Bibliothek');
+}
+function librarySilence(){
+ libraryOldMusicPlaying=!music.paused;libraryOldMusicTime=music.currentTime;
+ document.querySelectorAll('audio').forEach(function(a){if(a!==libraryNarrator&&!a.paused){a.pause()}});
+ if(ambienceAudio){ambienceAudio.pause();ambienceAudio=null;}
+ if(kidsSoundTimer){clearTimeout(kidsSoundTimer);kidsSoundTimer=null;}
+ if(chaseFootsteps){chaseFootsteps.pause();}
+}
+function libraryStart(i){
+ if(S.ended||libraryActive!==-1)return;
+ if(chaseTestRemaining!==null){toast('Während einer Jagd kannst du nicht vorlesen.');return libraryRoom()}
+ libraryActive=i;libraryPausedAt=Date.now();S.locked=true;
+ librarySilence();
+ document.getElementById('libraryChapterTitle').textContent='Kapitel '+(i+1)+' – '+libraryTitles[i];
+ document.getElementById('libraryProgress').value=0;
+ document.getElementById('libraryProgressLabel').textContent='Die Erzählung beginnt …';
+ libraryOverlay.classList.add('on');
+ libraryNarrator.src=libraryAudios[i];libraryNarrator.currentTime=0;
+ libraryNarrator.play().catch(function(){document.getElementById('libraryProgressLabel').textContent='Audio konnte nicht gestartet werden. Bitte erneut versuchen.';document.getElementById('libraryStopButton').textContent='Zurück zur Bibliothek';});
+}
+function libraryFinish(completed){
+ if(libraryActive===-1)return;
+ var i=libraryActive,elapsed=Date.now()-libraryPausedAt;
+ libraryActive=-1;libraryNarrator.pause();libraryNarrator.removeAttribute('src');libraryNarrator.load();libraryOverlay.classList.remove('on');
+ S.locked=false;
+ // Echtzeitbasierte Gefahren dürfen während der Vorlesung nicht nachholen.
+ if(Number.isFinite(nextRandomScareAt))nextRandomScareAt+=elapsed;
+ if(chaseNextAllowedAt)chaseNextAllowedAt+=elapsed;
+ if(rominaWhisperNext&&Number.isFinite(rominaWhisperNext))rominaWhisperNext+=elapsed;
+ if(rominaPhraseNext&&Number.isFinite(rominaPhraseNext))rominaPhraseNext+=elapsed;
+ if(completed&&!libraryHeard(i)){
+  mark('libraryHeard'+i);S.time+=60;restoreSanity(10);
+  toast('Kapitel abgeschlossen: +1 Minute und +10 % Sanity');
+ }
+ if(libraryOldMusicPlaying&&S.sound)music.play().catch(function(){});
+ document.getElementById('libraryStopButton').textContent='Vorlesung abbrechen';
+ libraryRoom();
+}
+libraryNarrator.addEventListener('ended',function(){libraryFinish(true)});
+libraryNarrator.addEventListener('timeupdate',function(){
+ if(libraryActive<0)return;
+ var d=libraryNarrator.duration,t=libraryNarrator.currentTime;
+ if(Number.isFinite(d)&&d>0)document.getElementById('libraryProgress').value=Math.min(100,100*t/d);
+ var m=Math.floor(t/60),sec=Math.floor(t%60);
+ document.getElementById('libraryProgressLabel').textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+});
+libraryNarrator.addEventListener('error',function(){if(libraryActive>=0)document.getElementById('libraryProgressLabel').textContent='Aufnahme nicht gefunden – keine Belohnung vergeben.'});
+document.getElementById('libraryStopButton').onclick=function(){libraryFinish(false)};
+
 /* HALL */
 function hall(){stopDaisy();
  if(!has("Taschenlampe"))return render("DUNKELHEIT","Ohne Licht gehst du hier nicht weiter.",[["⬅ Zurück",startRoom]],"Flur");
@@ -1106,6 +1183,7 @@ function hall(){stopDaisy();
   ["🔦 Taschenlampe an/aus",()=>{toggleLight();hall()}],
   ["🕰️ In den Speisesaal",speisesaal],
   ["🍲 In die verlassene Küche",kitchen],
+  ["📖 In die alte Bibliothek",libraryRoom],
   ["🪵 Lose Bodenleiste prüfen",hallBoard],
   ["🧥 Manteltasche der alten Garderobe durchsuchen",()=>hiddenFragment("hall_coat",hall,"In der Manteltasche ist nur alter Staub.")],
   ["📚 Archiv",archive],
@@ -1217,6 +1295,7 @@ function bedroom(){
   ['🖼️ Kleinen Bilderrahmen am Bett umdrehen',()=>hiddenFragment('bedroom_frame',bedroom,'Hinter dem Bild ist nur vergilbtes Papier.')],
   ['📦 Holzkästchen auf der Kommode öffnen',()=>hiddenFragment('bedroom_box',bedroom,'Das Holzkästchen ist leer.')],
   ['🖋️ Den alten Schreibtisch untersuchen',bedroomDesk],
+  ['📜 Alte Programmseite im Briefpapier prüfen',function(){libraryFragment(1,bedroom)},libraryFound(1)],
   ['✉️ Verwaschene Briefe durchsuchen',bedroomLetters],
   ['🛏️ Unter das Bett schauen',bedroomBed],
   ['🚪 Den Kleiderschrank öffnen',bedroomWardrobe],
@@ -1536,7 +1615,7 @@ function bedroomWardrobe(){
 function bathroom(){
  render('DAS BADEZIMMER',
  '<p>Die Fliesen sind kalt. In einer alten Badewanne steht dunkles, unbewegtes Wasser. Ein schwerer Vorhang hängt bis zum Boden.</p><p>Aus dem Wasserhahn fällt ein einzelner Tropfen. Danach ist es wieder still.</p>',
- [... (S.variant.workshopDollRoom==='Badezimmer'?[['🪆 Eine alte Puppe im Wäscheschrank untersuchen',rominasFirstDoll]]:[]),['🪞 Rückseite des Badezimmerspiegels prüfen',()=>hiddenFragment('bath_mirror_back',bathroom,'Hinter dem Spiegel ist nichts.')],['🧺 Saum der alten Handtücher prüfen',()=>hiddenFragment('bath_linen_seam',bathroom,'Die Handtücher sind brüchig und leer.')],['🛁 Die Badewanne untersuchen',bathTub],['🧺 Den Wäscheschrank öffnen',bathLinen],['🪞 Den beschlagenen Spiegel betrachten',bathMirror],['🩺 Den alten Medizinschrank untersuchen',medicineCabinet],['⬅ Zurück in den Flur',hall]],'Badezimmer');
+ [... (S.variant.workshopDollRoom==='Badezimmer'?[['🪆 Eine alte Puppe im Wäscheschrank untersuchen',rominasFirstDoll]]:[]),['🪞 Rückseite des Badezimmerspiegels prüfen',()=>hiddenFragment('bath_mirror_back',bathroom,'Hinter dem Spiegel ist nichts.')],['🧺 Saum der alten Handtücher prüfen',()=>hiddenFragment('bath_linen_seam',bathroom,'Die Handtücher sind brüchig und leer.')],['🛁 Die Badewanne untersuchen',bathTub],['🧺 Den Wäscheschrank öffnen',bathLinen],['🪞 Den beschlagenen Spiegel betrachten',bathMirror],['📜 Zerknitterte Aufzeichnung hinter einer Fliese',function(){libraryFragment(5,bathroom)},libraryFound(5)],['🩺 Den alten Medizinschrank untersuchen',medicineCabinet],['⬅ Zurück in den Flur',hall]],'Badezimmer');
 }
 function medicineCabinet(){
  var key=has('Schlüssel zum Medizinschrank');
@@ -1786,6 +1865,7 @@ function archive(){stopDaisy();
   ["📁 Vergilbte Akte 47 untersuchen",()=>hiddenFragment("archive_file",archive,"Die Seiten enthalten nur alte Berichte.")],
   ["📁 Akte 47 öffnen",archiveFile],
   ["📼 Alten Tonbandapparat untersuchen",archiveTape],
+  ["📖 Lose Buchseite zwischen alten Theaterakten",function(){libraryFragment(4,archive)},libraryFound(4)],
   
   ["⬅ Flur",hall]
  ],"Archiv",true)
@@ -1929,6 +2009,7 @@ function kids(){
  [
   ["🧸 Teddy unter dem Bett ansehen",()=>hiddenFragment("kids_teddy",kids,"Der Teddy ist staubig und sein Fell aufgerissen.")],
   ["🖼️ Die drei Bilder ansehen",kidsPictures],
+  ["📝 Handschriftliche Notiz hinter einem Bilderrahmen",function(){libraryFragment(2,kids)},libraryFound(2)],
   ["🔍 Spieluhrgehäuse genauer betrachten",musicBoxClue],
   ["🎵 Spieluhr untersuchen",musicBox],
   ["🪟 Vorhang am Fenster untersuchen",kidsCurtain],
@@ -2160,6 +2241,7 @@ function kitchen(){stopDaisy();
  render('DIE VERLASSENE KÜCHE','Ein großer Herd steht unter einer schwarzen Dunsthaube. Zehn beschriftete Gefäße stehen auf einem Regal. Auf dem Arbeitstisch liegt ein altes Küchenmesser. Daneben wartet ein schwerer Kessel.',[
  ['🔪 Altes Küchenmesser nehmen',function(){add('Altes Küchenmesser');kitchen()},has('Altes Küchenmesser')],
  ['📜 Silas’ Rezept lesen',silasRecipe,!S.flags.silasRecipeFound],
+ ['📐 Alte Werkstattzeichnung hinter dem Herd',function(){libraryFragment(3,kitchen)},libraryFound(3)],
  ['🔎 Küchenschublade durchsuchen',function(){render('DIE KÜCHENSCHUBLADE','Zwischen rostigem Besteck und vergilbten Servietten liegt eine Ersatzbatterie.',[['🔋 Batterie einsetzen',function(){battery('kueche_schublade');kitchen()},!!S.flags.battery_kueche_schublade],['⬅ Küche',kitchen]],'Küche')}],['⚗️ Zutaten am Kessel mischen',silasCauldron,!S.flags.silasRecipeFound],
  ['⬅ Flur',hall]],'Küche',true);
 }
