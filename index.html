@@ -1295,6 +1295,7 @@ function speisesaal(){stopDaisy();
   var state=S.flags['clock'+n]?' · eingestellt':S.flags['clockHandsInstalled'+n]?' · Zeiger eingesetzt':' · ohne Zeiger';
   actions.push(['🕰️ Uhr '+(n+1)+' – '+prettySymbol(S.variant.clockWords[n])+state,function(){clockPuzzle(n,speisesaal)}]);
  })(i);
+ actions.push([prestageL('🎛️ Alte Lichtregie-Anweisung lesen','🎛️ Read the Old Lighting Cue'),function(){prestageClue(0,speisesaal)}]);
  actions.push(['🔎 Unter dem Speisesaal-Sideboard nachsehen',function(){clockRender('DAS SIDEBOARD','Unter einem umgestürzten Silbertablett liegt eine unbenutzte Taschenlampenbatterie.',[['🔋 Batterie einsetzen',function(){battery('speisesaal_sideboard');speisesaal()},!!S.flags.battery_speisesaal_sideboard],['⬅ Zurück',speisesaal]],'Speisesaal') }],[(selectedLanguage==='en'?'📜 Examine Yellowed Theater Letter Beneath the Tablecloth':'📜 Vergilbten Theaterbrief unter der Tischdecke prüfen'),function(){libraryFragment(0,speisesaal)},libraryFound(0)],[(selectedLanguage==='en'?'⬅ Back to the Hallway':'⬅ Zurück in den Flur'),hall]);
  clockRender('DER VERLASSENE SPEISESAAL',
   'Ein langer Tisch verschwindet im Staub. Vier schwere antike Uhren stehen an der Wand. Ihre Zeiger fehlen. Unter jedem Zifferblatt ist ein anderes Zeichen tief ins Holz geritzt.<br><br>'+ 
@@ -1578,7 +1579,7 @@ function hall(){stopDaisy();
   ["🛏️ Schlafzimmer von Romina und Silas",bedroom],
   ["🛁 Altes Badezimmer",bathroom],
   ["🪡 Verschlossene Puppenwerkstatt",puppetWorkshop],
-  ["🎭 Zur verlassenen Bühne",stageRoom],
+  ["🎭 Zur verlassenen Bühne",prestageEntrance],
   ["↩️ Zurück in die Startkammer",startRoom]
  ],"Flur",true)
 }
@@ -2102,7 +2103,68 @@ function stageWhisper(){
   });
  }catch(e){console.warn(e);toast('Ritualaufnahme konnte nicht abgespielt werden.')}
 }
+/* THE LAST PERFORMANCE / DIE LETZTE VORSTELLUNG — bilingual stage access */
+var PRESTAGE_SECTIONS=[
+ {de:'LICHT',en:'LIGHT',deClue:'Lichtfolge',enClue:'Lighting sequence',deItems:['Links','Mitte','Rechts'],enItems:['Left','Centre','Right']},
+ {de:'KLANG',en:'SOUND',deClue:'Glockenfolge',enClue:'Bell sequence',deItems:['Tiefe Glocke','Mittlere Glocke','Hohe Glocke'],enItems:['Low bell','Middle bell','High bell']},
+ {de:'PUBLIKUM',en:'AUDIENCE',deClue:'Sitzfolge',enClue:'Seating sequence',deItems:['Platz A','Platz B','Platz C'],enItems:['Seat A','Seat B','Seat C']}
+];
+function prestageEnsure(){
+ if(!S.variant)S.variant={};
+ if(!S.variant.prestageOrders)S.variant.prestageOrders=[shuffle([0,1,2]),shuffle([0,1,2]),shuffle([0,1,2])];
+ if(!S.prestageProgress)S.prestageProgress=[[],[],[]];
+}
+function prestageL(de,en){return selectedLanguage==='en'?en:de}
+function prestageClue(i,back){
+ prestageEnsure();var data=PRESTAGE_SECTIONS[i],order=S.variant.prestageOrders[i];
+ var items=selectedLanguage==='en'?data.enItems:data.deItems;
+ var text=prestageL('Rominas alte Regieanweisung. Die Reihenfolge ist deutlich markiert:','Romina’s old stage direction. The order is clearly marked:');
+ render(prestageL('DIE REGIENOTIZ — '+data.de,'THE STAGE NOTE — '+data.en),
+ '<p>'+text+'</p><div class="note">'+order.map(function(k,n){return (n+1)+'. '+items[k]}).join('<br>')+'</div><p>'+prestageL('Merke dir diese Reihenfolge für das Regiepult vor der Bühne.','Remember this order for the control desk outside the stage.')+'</p>',
+ [[prestageL('⬅ Zurück','⬅ Back'),back]],S.room);
+}
+function prestageDesk(){
+ prestageEnsure();
+ if(S.flags.prestageUnlocked)return stageRoom();
+ var sections=PRESTAGE_SECTIONS;
+ var html='<p>'+prestageL('Ein schwerer roter Vorhang versperrt die Bühne. Drei mechanische Schlösser sichern das Regiepult.','A heavy red curtain blocks the stage. Three mechanical locks secure the control desk.')+'</p>'+
+ '<div class="note">'+prestageL('Keine Vorstellung beginnt ohne Licht, Klang und Publikum.','No performance begins without light, sound and an audience.')+'</div>';
+ var choices=[];
+ sections.forEach(function(section,i){
+  var done=!!S.flags['prestageDone'+i],progress=S.prestageProgress[i];
+  html+='<p><strong>'+prestageL(section.de,section.en)+'</strong>: '+(done?prestageL('✓ Entriegelt','✓ Unlocked'):prestageL('Schritt ','Step ')+(progress.length+1)+'/3')+'</p>';
+  if(!done){
+   (selectedLanguage==='en'?section.enItems:section.deItems).forEach(function(label,k){
+    choices.push(['🎭 '+prestageL(section.de,section.en)+' — '+label,(function(a,b){return function(){prestagePick(a,b)}})(i,k)]);
+   });
+  }
+ });
+ choices.push([prestageL('⬅ Zurück in den Flur','⬅ Back to the Hallway'),hall]);
+ render(prestageL('DIE LETZTE VORSTELLUNG — REGIEPULT','THE LAST PERFORMANCE — CONTROL DESK'),html,choices,'Bühnenzugang',true);
+}
+function prestagePick(i,k){
+ prestageEnsure();if(S.flags.prestageUnlocked||S.flags['prestageDone'+i])return prestageDesk();
+ var progress=S.prestageProgress[i],correct=S.variant.prestageOrders[i][progress.length];
+ if(k!==correct){
+  S.prestageProgress[i]=[];
+  return render(prestageL('DAS REGIEPULT STOCKT','THE CONTROL DESK JAMS'),
+  '<p>'+prestageL('Die Mechanik rastet nicht ein. Die bisherige Folge dieses Schlosses wird zurückgesetzt. Suche die Regienotiz und versuche es erneut.','The mechanism refuses to lock. This sequence has reset. Find the stage note and try again.')+'</p>',
+  [[prestageL('⬅ Zum Regiepult','⬅ Back to the Control Desk'),prestageDesk]],'Bühnenzugang');
+ }
+ progress.push(k);
+ if(progress.length===3)S.flags['prestageDone'+i]=true;
+ if([0,1,2].every(function(n){return !!S.flags['prestageDone'+n]})){
+  S.flags.prestageUnlocked=true;
+  return render(prestageL('DER VORHANG ÖFFNET SICH','THE CURTAIN RISES'),
+  '<p>'+prestageL('Alle drei Schlösser klicken. Der schwere Vorhang gleitet zur Seite. Ein einzelner Scheinwerfer erhellt die Bühne. Aus der Dunkelheit ertönt langsames Klatschen.','All three locks click. The heavy curtain slides aside. A single spotlight illuminates the stage. Slow applause echoes from the darkness.')+'</p><div class="note">'+prestageL('Die Vorstellung kann endlich beginnen.','The show can finally begin.')+'</div>',
+  [[prestageL('🎭 Die Bühne betreten','🎭 Enter the Stage'),stageRoom],[prestageL('⬅ Zurück in den Flur','⬅ Back to the Hallway'),hall]],'Bühnenzugang');
+ }
+ prestageDesk();
+}
+function prestageEntrance(){prestageEnsure();if(S.flags.prestageUnlocked)return stageRoom();prestageDesk()}
+
 function stageRoom(){
+ if(!S.flags.prestageUnlocked)return prestageDesk();
  stageEntered=true;
  if(!rominaPhraseAudio.paused){rominaPhraseAudio.pause();rominaPhraseAudio.currentTime=0;}
  var firstVisit=!S.flags.ritualWhisperVisited;
@@ -2128,6 +2190,7 @@ function stageRoom(){
 
 }
 function stageWiring(){
+ if(!S.flags.prestageUnlocked)return prestageDesk();
  S.room='Bühne';ensureStageVariant();
  if(S.flags.stageWired)return stageRoom();
  if(!S.flags.pictureSolved)return ritualRender('DIE UNVOLLSTÄNDIGEN LEITUNGEN','<p>Einige Kontakte fehlen. An den losen Enden hängen Fäden, die unter der Wand verschwinden.</p><p>Die sechs Marionetten sind zu erkennen, doch noch lässt sich der Stromkreis nicht schließen.</p>',[['⬅ Zur Bühne',stageRoom]],'Bühne');
@@ -2139,7 +2202,7 @@ function stageWiring(){
   var fixed=!!S.stageConnections[idx];
   html+='<div style="margin:12px 0;padding:12px;border:1px solid #75505a;border-radius:8px"><strong>'+esc(STAGE_PUPPETS[idx])+'</strong>'+
    '<label style="display:block;margin:8px 0"><select id="wire'+n+'" '+(fixed?'disabled':'')+' style="display:block;width:100%;padding:11px;background:#181217;color:#f0e1dc;border:1px solid #75505a"><option value="">— Buchse auswählen —</option>'+
-   STAGE_MARKS.map(function(mark){return '<option value="'+mark+'" '+(fixed&&mark===S.variant.stageMap[idx]?'selected':'')+'>'+mark+'</option>'}).join('')+'</select></label>'+
+   STAGE_MARKS.map(function(mark,markIndex){return '<option value="stage-mark-'+markIndex+'" '+(fixed&&mark===S.variant.stageMap[idx]?'selected':'')+'>'+mark+'</option>'}).join('')+'</select></label>'+
    '<button id="wireCheck'+n+'" '+(fixed?'disabled':'')+'>'+(fixed?'✓ Fest verbunden':'Verbindung prüfen')+'</button> <span id="wireResult'+n+'" aria-live="polite" style="font-weight:bold;color:'+(fixed?'#9fdb9f':'#f0e1dc')+'">'+(fixed?'Richtig ✓':'Noch nicht geprüft')+'</span></div>';
  });
  html+='<button id="wireBack">⬅ Zur Bühne</button></div>';
@@ -2149,8 +2212,10 @@ function stageWiring(){
   if(S.stageConnections[idx])return;
   document.getElementById('wireCheck'+n).onclick=function(){
    var select=document.getElementById('wire'+n), result=document.getElementById('wireResult'+n),val=select.value;
+   // Stable language-independent ID: translation may change the label, never the answer.
+   var chosenMark=/^stage-mark-([0-5])$/.test(val)?STAGE_MARKS[Number(val.slice(11))]:null;
    if(!val){result.textContent=ritualEN('Bitte eine Buchse wählen');result.style.color='#f0c580';return}
-   if(val!==S.variant.stageMap[idx]){
+   if(chosenMark!==S.variant.stageMap[idx]){
     // Ritual-Zeitstrafen: Normal 30/60/120 s, Einsteiger halbiert, Albtraum 1,5-fach.
     S.stageMistakes=(S.stageMistakes||0)+1;
     var ritualPenalty=timePenalty(S.stageMistakes===1?30:S.stageMistakes===2?60:120);
@@ -2203,15 +2268,16 @@ function puppeteerKeyScene(which){
   mark('ritualBadKey');
  }
  mark('puppeteerKeyGiven');
- playKeyHandoverVoice('puppeteer-schluessel-uebergabe.mp3');
+ playKeyHandoverVoice(selectedLanguage==='en'?'puppeteer-key-handover-en.mp3':'puppeteer-schluessel-uebergabe.mp3');
  ritualRender('DIE HAND HINTER DEM VORHANG',
  '<p>Das Licht flackert. Hinter dem schweren Vorhang knackt trockenes Holz.</p>'+ 
  '<p>Eine lange, gelenkige hölzerne Hand schiebt sich langsam hervor. Zwischen ihren Fingern hängt ein alter Schlüssel.</p>'+ 
  '<p>Du nimmst <strong>Schlüssel '+(good?'III':'I')+'</strong>. Die Finger schließen sich um die leere Luft, dann verschwindet die Hand.</p>'+ 
  '<p>Ein verzerrtes Lachen hallt durch die Bühne.</p><div class="note"><em>„Du entscheidest, wo du hingehen willst.“</em></div>',
- [['🔊 Puppeteer erneut anhören',function(){playKeyHandoverVoice('puppeteer-schluessel-uebergabe.mp3')}],['🗝️ Zu den drei Türen',escapeDoors],[(selectedLanguage==='en'?'⬅ Back to the Hallway':'⬅ Zurück in den Flur'),hall]],'Bühne');
+ [['🔊 Puppeteer erneut anhören',function(){playKeyHandoverVoice(selectedLanguage==='en'?'puppeteer-key-handover-en.mp3':'puppeteer-schluessel-uebergabe.mp3')}]].concat([['🗝️ Zu den drei Türen',escapeDoors],[(selectedLanguage==='en'?'⬅ Back to the Hallway':'⬅ Zurück in den Flur'),hall]]),'Bühne');
 }
 function stageSeventh(){
+ if(!S.flags.prestageUnlocked)return prestageDesk();
  S.room='Bühne';if(!S.flags.stageWired)return stageRoom();
  if(S.flags.ritualChoice==='bad')return puppeteerKeyScene(1);
  if(S.flags.ritualChoice==='good')return puppeteerKeyScene(3);
@@ -2252,6 +2318,7 @@ function archive(){stopDaisy();
  'Metallregale voller Akten. Ein vergilbter Bericht nennt Romina und Silas Voss: Beide führten die Rituale gemeinsam durch. Seit der siebten Vorstellung sind sie verschwunden. Eine Schublade enthält eine Batterie.<br><br>Die Beschriftungen der Archivschubladen sind kaum noch zu lesen.<br><br>Auf dem Boden liegen verstreute Papiere. Hinter einem hohen Aktenschrank ist ein schmaler Spalt.',
  [
 ... (S.variant.workshopDollRoom==='Archiv'?[['🪆 Eine alte Puppe im Aktenregal untersuchen',rominasFirstDoll]]:[]),
+  [prestageL('🪑 Alten Sitzplan der Vorstellung lesen','🪑 Read the Old Theatre Seating Plan'),function(){prestageClue(2,archive)}],
   ["🔋 Batterie nehmen",()=>{battery("archiv");archive()},S.flags["battery_archiv"]],
   ["🗄️ Aktenschrank untersuchen",archiveCabinetHide],
   
@@ -2354,6 +2421,7 @@ function puppetWorkshop(){
   '<p>An der Wand ist eine Zeichnung von <strong>Tür III</strong> befestigt. Darunter steht: <em>„Nicht jeder Schlüssel wird geschenkt. Manche müssen geschaffen werden.“</em></p>'+
   '<p>Eine alte Schluesselmaschine steht auf der Werkbank. Ihr Stromkabel fuehrt durch die Wand in Richtung Keller. Auf dem Gehaeuse steht: <em>Nur mit Strom und drei Werkstuecken.</em></p>',
   [
+   [prestageL('🔔 Regienotiz zu den Glocken lesen','🔔 Read the Bell Cue Sheet'),function(){prestageClue(1,puppetWorkshop)}],
    ['🪵 Werkbank untersuchen',workshopBench],
    ['📜 Rominas Notizen lesen',workshopNotes],
    ['🎭 Unfertige Marionetten ansehen',workshopPuppets],
@@ -2743,13 +2811,71 @@ function escapeDoors(){
  "Drei schwere Türen stehen nebeneinander. In das Holz sind I, II und III geritzt. Die erste Tür trägt eine dunkle, kreisförmige Spur.",
  [
  ["🚪 Tür I untersuchen",function(){
-  if(has('Schlüssel I')&&S.flags.ritualChoice==='bad')return end(selectedLanguage==='en'?'THE SEVENTH MARIONETTE':'DIE SIEBTE MARIONETTE',selectedLanguage==='en'?equipmentDescriptions['<p>Schlüssel I dreht sich. Der Faden an deinem Handgelenk spannt sich.</p><p>Hinter der Tür warten sechs Puppen. Ein siebter Platz ist für dich bestimmt.</p><h3>ENDE — DIE SIEBTE MARIONETTE</h3>']:'<p>Schlüssel I dreht sich. Der Faden an deinem Handgelenk spannt sich.</p><p>Hinter der Tür warten sechs Puppen. Ein siebter Platz ist für dich bestimmt.</p><h3>ENDE — DIE SIEBTE MARIONETTE</h3>');
+  if(has('Schlüssel I')&&S.flags.ritualChoice==='bad')return endOneFinal();
   render('TÜR I','Das Schloss wartet auf Schlüssel I. Hinter dem Holz bewegt sich etwas an unsichtbaren Fäden.',[['⬅ Zurück',escapeDoors]],'Flur');
  }],
  ["🚪 Tür II untersuchen",function(){render("TÜR II","Ein anderes Schloss. Dein Schlüssel passt nicht. Dieser Fluchtweg bleibt vorerst versiegelt.",[["⬅ Zurück",escapeDoors]],"Flur")}],
- ["🚪 Tür III untersuchen",function(){if(has("Schlüssel III"))return render("TÜR III — DIE SCHWELLE","Schlüssel III passt. Das Schloss dreht sich, und die Tür öffnet einen Spalt. Dahinter wartet ein dunkler Gang. Der letzte Abschnitt des guten Endes wird als Nächstes ausgearbeitet.",[["⬅ Zurück",escapeDoors]],"Flur");render("TÜR III","Auf der anderen Seite ist ein leises Scharren zu hören. Das Schloss verlangt Schlüssel III – entweder aus Rominas Werkstatt oder als Gabe des Puppeteers.",[["⬅ Zurück",escapeDoors]],"Flur")}],
+ ["🚪 Tür III untersuchen",function(){if(has("Schlüssel III"))return startGoodEnding();render("TÜR III","Auf der anderen Seite ist ein leises Scharren zu hören. Das Schloss verlangt Schlüssel III – entweder aus Rominas Werkstatt oder als Gabe des Puppeteers.",[["⬅ Zurück",escapeDoors]],"Flur")}],
  ["⬅ Flur",hall]
  ],"Flur");
+}
+
+/* ENDE I — eigener Abschlussbildschirm, entsprechend dem Abschluss von Tür III. */
+function endOneFinal(){
+ chaseTestStop();S.ended=true;S.locked=true;
+ if(timer)clearInterval(timer);
+ try{music.pause()}catch(e){}
+ try{if(ritualAudio)ritualAudio.pause()}catch(e){}
+ try{if(ritualDialogueAudio)ritualDialogueAudio.pause()}catch(e){}
+ dark.classList.remove("on");
+ var en=selectedLanguage==='en';
+ app.innerHTML='<div class="kicker">THE LAST ROOM</div><div class="story center" style="min-height:48vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px"><div style="font-size:44px">🪡</div><h1>'+(en?'YOU ARE HIM NOW!!':'DU BIST JETZT ER!!')+'</h1><p style="font:italic clamp(20px,3vw,30px) Georgia,serif;max-width:800px;line-height:1.5">'+(en?'The curtain has fallen. But the strings remain.':'Der Vorhang ist gefallen. Doch die Fäden bleiben.')+'</p><h2>THE LAST ROOM</h2></div><div class="grid"><button class="primary" id="endOneReplay">'+(en?'PLAY AGAIN':'NOCH MAL SPIELEN')+'</button><button disabled title="'+(en?'Video link will be added after publication':'Videolink wird nach Veröffentlichung ergänzt')+'">'+(en?'STORY VIDEO — COMING SOON':'STORY-VIDEO — FOLGT')+'</button></div><div class="panel center">'+(en?'The video link will appear here when the video is published.':'Der Link zum Video erscheint hier, sobald es veröffentlicht ist.')+'</div>';
+ document.getElementById('endOneReplay').onclick=function(){location.reload()};
+}
+
+/* GOOD ENDING / GUTES ENDE — Tür III. Keine Aussage über das Schicksal der drei Figuren. */
+var goodEndingTimeout=null;
+function startGoodEnding(){
+ chaseTestStop();S.ended=true;S.locked=true;
+ if(timer)clearInterval(timer);
+ try{music.pause()}catch(e){}
+ try{if(ritualAudio)ritualAudio.pause()}catch(e){}
+ try{if(ritualDialogueAudio)ritualDialogueAudio.pause()}catch(e){}
+ dark.classList.remove('on');
+ var en=selectedLanguage==='en';
+ var lines=en?[
+  'Key III fits. The lock turns. The door opens onto a dark corridor.',
+  'With every step, the sounds of the house grow fainter.',
+  'At the end of the corridor, daylight spills through an open door.',
+  'You step outside. For the first time, everything is silent.',
+  'A single, quiet clap sounds behind you.',
+  'You turn around. The door is gone.',
+  'Only a single red thread lies on the ground.'
+ ]:[
+  'Schlüssel III passt. Das Schloss dreht sich. Dahinter liegt ein dunkler Korridor.',
+  'Mit jedem Schritt werden die Geräusche des Hauses leiser.',
+  'Am Ende des Flurs fällt Tageslicht durch eine offene Tür.',
+  'Du trittst hinaus. Zum ersten Mal ist alles still.',
+  'Hinter dir ertönt ein einzelnes, leises Klatschen.',
+  'Du drehst dich um. Die Tür ist verschwunden.',
+  'Auf dem Boden liegt nur ein einzelner roter Faden.'
+ ];
+ var i=0;
+ function scene(){
+  if(i>=lines.length){goodEndingFinal();return}
+  var text=lines[i++];
+  app.innerHTML='<div class="kicker">THE LAST ROOM</div><div class="story center" style="min-height:55vh;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:22px"><div style="font-size:36px;color:#d6b8c1">'+(i===lines.length?'🧵':'🚪')+'</div><p style="font:clamp(21px,3vw,32px) Georgia,serif;max-width:760px;line-height:1.6">'+text+'</p></div><button id="goodNext" class="primary">'+(en?'CONTINUE':'WEITER')+'</button><button id="goodSkip">'+(en?'Skip scene':'Szene überspringen')+'</button>';
+  document.getElementById('goodNext').onclick=function(){clearTimeout(goodEndingTimeout);scene()};
+  document.getElementById('goodSkip').onclick=function(){clearTimeout(goodEndingTimeout);goodEndingFinal()};
+  goodEndingTimeout=setTimeout(scene,4000);
+ }
+ scene();
+}
+function goodEndingFinal(){
+ clearTimeout(goodEndingTimeout);
+ var en=selectedLanguage==='en';
+ app.innerHTML='<div class="kicker">THE LAST ROOM</div><div class="story center" style="min-height:48vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px"><div style="font-size:44px">🧵</div><h1>'+(en?'YOU ARE FREE!! FOR NOW!!':'DU BIST FREI!! VORERST!!')+'</h1><p style="font:italic clamp(20px,3vw,30px) Georgia,serif;max-width:800px;line-height:1.5">'+(en?'Not every story ends when the curtain falls.':'Nicht jede Geschichte endet, wenn der Vorhang fällt.')+'</p><h2>THE LAST ROOM</h2></div><div class="grid"><button class="primary" id="goodReplay">'+(en?'PLAY AGAIN':'NOCH MAL SPIELEN')+'</button><button disabled title="'+(en?'Video link will be added after publication':'Videolink wird nach Veröffentlichung ergänzt')+'">'+(en?'STORY VIDEO — COMING SOON':'STORY-VIDEO — FOLGT')+'</button></div><div class="panel center">'+(en?'The video link will appear here when the video is published.':'Der Link zum Video erscheint hier, sobald es veröffentlicht ist.')+'</div>';
+ document.getElementById('goodReplay').onclick=function(){location.reload()};
 }
 
 /* Ende II: Erinnerung, Akte 47 und bewusste Entscheidung an der Eingangstür. */
@@ -2766,17 +2892,22 @@ function mirrorMemoryPuzzle(){
  S.flags.memoryOrder.map(function(n,i){return [(selectedLanguage==='en'?'🪞 Choose Record '+(i+1)+' as the Beginning':'🪞 Aufzeichnung '+(i+1)+' als Anfang wählen'),function(){if(n===0){mark('memorySolved');mirrorPhotoReveal()}else{S.sanity=Math.max(0,S.sanity-5);toast(selectedLanguage==='en'?'The mirror shows a false memory. −5 Sanity.':'Der Spiegel zeigt eine falsche Erinnerung. −5 Sanity.');mirrorMemoryPuzzle()}}]}).concat([['⬅ Zum schwarzen Spiegel',blackMirror]]),'Spiegelsaal');
 }
 function entranceDoor(){
- if(!has('Schlüssel II'))return render('DIE EINGANGSTÜR','Das Schloss ist verschlossen. Du spürst kalte Luft auf der anderen Seite. Irgendwo im Haus muss es einen passenden Schlüssel geben.',[['⬅ Zurück',startRoom]],'Startkammer');
- render('DIE EINGANGSTÜR','Schlüssel II gleitet ins Schloss. Ein leises Klicken. Die Tür schwingt auf. Draußen ist es still. Keine Schritte. Keine Marionetten. Nur die Nacht.<p><em>Was möchtest du tun?</em></p>',[
+ if(!has('Schlüssel II'))return render('DIE EINGANGSTÜR',selectedLanguage==='en'?'The lock is shut. You feel cold air on the other side. Somewhere in the house there must be a key that fits.':'Das Schloss ist verschlossen. Du spürst kalte Luft auf der anderen Seite. Irgendwo im Haus muss es einen passenden Schlüssel geben.',[['⬅ Zurück',startRoom]],'Startkammer');
+ render('DIE EINGANGSTÜR',selectedLanguage==='en'?'Key II slides into the lock. A soft click. The door swings open. Outside, everything is still. No footsteps. No marionettes. Only the night.<p><em>What would you like to do?</em></p>':'Schlüssel II gleitet ins Schloss. Ein leises Klicken. Die Tür schwingt auf. Draußen ist es still. Keine Schritte. Keine Marionetten. Nur die Nacht.<p><em>Was möchtest du tun?</em></p>',[
  ['🚪 Durch die Tür treten',loopEnding],['⬅ Im Haus bleiben',startRoom]],'Startkammer');
 }
 function loopEnding(){
- if(S.flags.loopSeen){S.room='Startkammer';return render('DER BEKANNTE WEG','Du kennst diesen Weg bereits. Und doch führt er dich wieder hierher.',[['⬅ Weitersuchen',startRoom]],'Startkammer')}
- mark('loopSeen');S.locked=true;S.room='Startkammer';
+ // Loop II returns to the same game state: no inventory, puzzle, key or timer reset.
+ if(!S.flags.loopSeen)mark('loopSeen');
+ S.locked=true;
  if(mirrorPoemAudio){mirrorPoemAudio.pause();mirrorPoemAudio.currentTime=0}
  if(typeof chaseTestStop==='function')chaseTestStop();
  music.pause();dark.classList.remove('on');
- app.innerHTML='<div class="story center"><h2>DIE TÜR ÖFFNET SICH</h2><p>Du trittst über die Schwelle. Zum ersten Mal seit einer Ewigkeit spürst du frische Luft.</p><p>Hinter dir fällt die Tür ins Schloss.</p><p>Ein Schritt. Noch einer.</p><p>Eine Uhr schlägt. Das Licht erlischt.</p><p>Als du die Augen wieder öffnest, stehst du in der Startkammer.</p><p>Auf dem Boden liegt ein Zettel.</p><div class="note">„Willkommen zurück. Wir haben dich vermisst.“</div><button class="primary" id="loopReveal">WEITER</button></div>';
+ var en=selectedLanguage==='en';
+ app.innerHTML='<div class="story center"><h2>'+(en?'THE DOOR OPENS':'DIE TÜR ÖFFNET SICH')+'</h2>'+
+ (en?'<p>You step across the threshold. For the first time in what feels like an eternity, you breathe fresh air.</p><p>The door closes behind you.</p><p>One step. Then another.</p><p>A clock strikes. The light goes out.</p><p>When you open your eyes, you are back in the starting chamber.</p><p>A note lies on the floor.</p><div class="note">“Welcome back. We missed you.”</div>':
+ '<p>Du trittst über die Schwelle. Zum ersten Mal seit einer Ewigkeit spürst du frische Luft.</p><p>Hinter dir fällt die Tür ins Schloss.</p><p>Ein Schritt. Noch einer.</p><p>Eine Uhr schlägt. Das Licht erlischt.</p><p>Als du die Augen wieder öffnest, stehst du in der Startkammer.</p><p>Auf dem Boden liegt ein Zettel.</p><div class="note">„Willkommen zurück. Wir haben dich vermisst.“</div>')+
+ '<button class="primary" id="loopReveal">'+(en?'CONTINUE':'WEITER')+'</button></div>';
  document.getElementById('loopReveal').onclick=playLoopEndingVoice;
 }
 function playLoopEndingVoice(){
@@ -2793,17 +2924,31 @@ function playLoopEndingVoice(){
  if(!S.sound){finish();return}
  var p=a.play();
  if(p&&p.catch)p.catch(function(){
-  // Playback blocked: allow a fresh click instead of skipping the spoken ending.
   button.disabled=false;
   button.textContent=selectedLanguage==='en'?'▶ Play Romina’s message':'▶ Rominas Nachricht abspielen';
   button.onclick=function(){button.disabled=true;button.textContent=selectedLanguage==='en'?'Listen…':'Hör zu …';a.play().catch(finish)};
  });
-
 }
 function loopEndingScreen(){
- app.innerHTML='<div class="kicker">THE LAST ROOM</div><div class="story center"><h1>ENDE II</h1><h2>DER EWIGE KREISLAUF</h2><p>Du bist zurück. Aber deine Erinnerungen sind geblieben.</p></div><div class="grid" id="loopChoices"><button class="primary" id="loopContinue">WEITER – Zurück ins Spiel</button><button id="loopQuit">ENDE – Hauptmenü</button></div><div class="panel center"><strong>DIE GANZE GESCHICHTE</strong><p>Link zum YouTube-Video folgt nach Veröffentlichung.</p></div>';
- document.getElementById('loopContinue').onclick=function(){S.locked=false;S.room='Startkammer';S.blackoutRemaining=null;startRoom()};
- document.getElementById('loopQuit').onclick=function(){location.reload()};
+ var en=selectedLanguage==='en';
+ app.innerHTML='<div class="kicker">THE LAST ROOM</div>'+
+ '<div class="story center" style="min-height:48vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px">'+
+ '<div style="font-size:44px">⏳</div><h1>'+(en?'WELCOME BACK!!':'WILLKOMMEN ZURÜCK!!')+'</h1>'+
+ '<p style="font:italic clamp(20px,3vw,30px) Georgia,serif;max-width:800px;line-height:1.5">'+
+ (en?'Some doors don’t lead out. They only lead back.':'Manche Türen führen nicht hinaus. Sie führen nur zurück.')+
+ '</p><h2>THE LAST ROOM</h2></div>'+
+ '<div class="grid" id="loopChoices"><button class="primary" id="loopContinue">'+(en?'CONTINUE':'WEITER')+'</button>'+
+ '<button id="loopReplay">'+(en?'PLAY AGAIN':'NOCH MAL SPIELEN')+'</button>'+
+ '<button disabled title="'+(en?'Video link will be added after publication':'Videolink wird nach Veröffentlichung ergänzt')+'">'+
+ (en?'STORY VIDEO — COMING SOON':'STORY-VIDEO — FOLGT')+'</button></div>'+
+ '<div class="panel center">'+(en?'The video link will appear here when the video is published.':'Der Link zum Video erscheint hier, sobald es veröffentlicht ist.')+'</div>';
+ document.getElementById('loopContinue').onclick=function(){
+  // Preserve the entire current S object, including keys, items, flags and remaining time.
+  S.locked=false;
+  S.room='Startkammer';
+  startRoom();
+ };
+ document.getElementById('loopReplay').onclick=function(){location.reload()};
 }
 
 
