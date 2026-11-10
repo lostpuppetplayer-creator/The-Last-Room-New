@@ -2094,6 +2094,8 @@ function blockedRitualClue(back){
   [['⬅ '+(selectedLanguage==='en'?'Back':'Zurück'),back]],S.room);
 }
 function stageClue(i,back){
+ // Auch direkte Aufrufe dürfen vor dem gelösten Bilderrätsel keinen Beweis preisgeben.
+ if(!S.flags.pictureSolved)return blockedRitualClue(back);
  ensureStageVariant();
  if(i<0||i>=6)return back();
  S.flags['stageClueFound'+i]=true;
