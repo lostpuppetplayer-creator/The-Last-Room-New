@@ -1114,6 +1114,7 @@ function hiddenFragment(place,back,description){
  }
  var clockIndex=S.variant.clockClueLocations.indexOf(place);
  if(clockIndex>=0 && !S.flags['clockClue'+clockIndex]){
+  if(!S.flags.pictureSolved)return blockedRitualClue(back);
   mark('clockClue'+clockIndex);add('Uhrzeiger '+prettySymbol(S.variant.clockWords[clockIndex]));
   var symbol=S.variant.clockWords[clockIndex];
   var events=['Erste Vorstellung','Zweite Beschwörung','Dritte Beschwörung','Vierte Beschwörung'];
