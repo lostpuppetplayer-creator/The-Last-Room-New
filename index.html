@@ -1136,7 +1136,10 @@ function hiddenFragment(place,back,description){
    [['⬅ Zurück',back]],S.room);
  }
  var ritualIndex=S.variant.stageLocations.indexOf(place);
- if(ritualIndex>=0)return stageClue(ritualIndex,back);
+ if(ritualIndex>=0){
+  if(!S.flags.pictureSolved)return blockedRitualClue(back);
+  return stageClue(ritualIndex,back);
+ }
  render('GENAUER UNTERSUCHT',description||'Du untersuchst den Gegenstand sorgfältig. Hier ist nichts Weiteres verborgen.',[['⬅ Zurück',back]],S.room);
 }
 function prettySymbol(s){return {mond:"MOND",turm:"TURM",kreuz:"KREUZ",stern:"STERN"}[s]||s.toUpperCase()}
@@ -2065,6 +2068,29 @@ function ensureStageVariant(){
  if(!S.variant)return;
  if(!S.variant.stageMap)S.variant.stageMap=shuffle(STAGE_MARKS);
  if(!S.variant.stageOrder)S.variant.stageOrder=shuffle([0,1,2,3,4,5]);
+}
+// Ritual clues remain concealed until the six-piece picture puzzle is solved.
+// These lines are intentionally vague and do not reveal the puzzle dependency.
+var BLOCKED_RITUAL_CLUE_LINES={
+ de:[
+  'Etwas hat etwas dagegen, dass du das liest.',
+  'Hier steht etwas. Doch du kannst es noch nicht entziffern.',
+  'Du kannst die Zeichen erkennen. Aber noch nicht ihre Bedeutung.',
+  'Du hast noch nicht die Sicht dafür.'
+ ],
+ en:[
+  "Something doesn't want you to read this.",
+  "Something is written here, but you can't decipher it yet.",
+  'You can see the symbols, but not yet understand their meaning.',
+  "You don't have the sight for it yet."
+ ]
+};
+function blockedRitualClue(back){
+ var lines=BLOCKED_RITUAL_CLUE_LINES[selectedLanguage==='en'?'en':'de'];
+ var line=lines[Math.floor(Math.random()*lines.length)];
+ return ritualRender(selectedLanguage==='en'?'A STRANGE DISCOVERY':'EINE SELTSAME ENTDECKUNG',
+  '<p>'+line+'</p>',
+  [['⬅ '+(selectedLanguage==='en'?'Back':'Zurück'),back]],S.room);
 }
 function stageClue(i,back){
  ensureStageVariant();

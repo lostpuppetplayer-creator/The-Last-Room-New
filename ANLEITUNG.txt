@@ -1,0 +1,13 @@
+THE LAST ROOM V42 – KLEINES UPDATE
+
+Du brauchst die bereits heruntergeladene vollständige Spielversion aus "The-Last-Room-New-main (1).zip".
+
+1. Entpacke deine vollständige Spiel-ZIP auf dem PC.
+2. Öffne den Ordner "The-Last-Room-New-main".
+3. Entpacke dieses kleine Update.
+4. Ersetze im Spielordner die bisherige Datei "index.html" durch die neue "index.html" aus diesem Update.
+5. Alle anderen Dateien unverändert lassen.
+6. Starte index.html oder lade den aktualisierten Spielordner zu GitHub hoch.
+
+Die Änderung ergänzt die englischen Endvideo-Links.
+Vor Veröffentlichung alle drei Enden in beiden Sprachen testen.
