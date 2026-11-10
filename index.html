@@ -2738,15 +2738,22 @@ Object.assign(equipmentDescriptions,{"Drei schwere Türen stehen nebeneinander. 
 Object.assign(equipmentLabels,{"📖 Papierbündel öffnen": "📖 Open the Bundle of Papers", "🔩 Haarnadel ansehen": "🔩 Examine the Hairpin", "🔩 Haarnadel aufheben": "🔩 Pick Up the Hairpin", "🪵 Bodenleiste vorsichtig anheben": "🪵 Carefully Lift the Loose Floorboard", "⬅ Zur Bodenleiste": "⬅ Back to the Loose Floorboard", "⬅ Zurück": "⬅ Back", "⬅ Flur": "⬅ Hallway", "🚪 Tür I untersuchen": "🚪 Examine Door I", "🚪 Tür II untersuchen": "🚪 Examine Door II", "🚪 Tür III untersuchen": "🚪 Examine Door III"});
 
 
-/* Official unlisted ending films — shared across DE/EN versions. */
+/* Official unlisted ending films — selected by language and ending. */
 const TLR_ENDING_VIDEOS=Object.freeze({
+ de:Object.freeze({
   1:'https://www.youtube.com/watch?v=D04I5OA_n2E',
   2:'https://www.youtube.com/watch?v=tfE_JHuhifU',
   3:'https://www.youtube.com/watch?v=Egx8iwNDDcw'
+ }),
+ en:Object.freeze({
+  1:'https://www.youtube.com/watch?v=V1yz5dUS6Cs',
+  2:'https://www.youtube.com/watch?v=xsPKfSjkKvo',
+  3:'https://www.youtube.com/watch?v=4lopzpOahtQ'
+ })
 });
 function tlrEndingVideoPanel(which){
  const en=selectedLanguage==='en';
- return '<div class="panel center" style="margin-top:22px"><strong>'+(en?'WATCH YOUR ENDING':'DEIN ENDE ANSEHEN')+'</strong><p>'+(en?'Your ending film opens on YouTube.':'Dein Endvideo öffnet sich auf YouTube.')+'</p><a class="primary" href="'+TLR_ENDING_VIDEOS[which]+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:13px 22px;text-decoration:none;border-radius:6px">'+(en?'▶ WATCH ENDING '+which:'▶ ENDE '+which+' ANSEHEN')+'</a></div>';
+ return '<div class="panel center" style="margin-top:22px"><strong>'+(en?'WATCH YOUR ENDING':'DEIN ENDE ANSEHEN')+'</strong><p>'+(en?'Your ending film opens on YouTube.':'Dein Endvideo öffnet sich auf YouTube.')+'</p><a class="primary" href="'+TLR_ENDING_VIDEOS[en?'en':'de'][which]+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:13px 22px;text-decoration:none;border-radius:6px">'+(en?'▶ WATCH ENDING '+which:'▶ ENDE '+which+' ANSEHEN')+'</a></div>';
 }
 function tlrFinalEnding(which){
  chaseTestStop();S.ended=true;S.locked=true;
