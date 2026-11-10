@@ -1,0 +1,44 @@
+THE LAST ROOM — ENGLISH ENDING SCRIPTS / V41
+===========================================
+YouTube links (unlisted, identical in both language versions)
+ENDING I   https://www.youtube.com/watch?v=D04I5OA_n2E
+ENDING II  https://www.youtube.com/watch?v=tfE_JHuhifU
+ENDING III https://www.youtube.com/watch?v=Egx8iwNDDcw
+
+ENDING I — YOU ARE HIM NOW
+Original German monologue → English recording script:
+
+You were chosen.
+
+We tried to help you.
+
+Now you are here. And here you will remain.
+
+Who would have thought the house would win?
+That HE would win?
+
+It's all over. Everything is lost.
+And you ... YOU are to blame.
+YOU ALONE.
+
+ENDING II — THE ETERNAL LOOP
+Original German monologue → English recording script:
+
+You can't leave yet.
+
+Your help is still needed here.
+
+If you leave now, you'll never be free again.
+
+The house won't let you go, and you'll end up like us.
+
+I can't tell you what happened to us.
+He won't allow it.
+
+Find the right way out.
+Free us all.
+
+ENDING III — YOU ARE FREE! FOR NOW!
+The full German spoken narration for ending III was not available for a faithful translation. Its on-screen ending title and descriptive text have been translated in the game.
+
+NOTE: These are translation scripts, not synthesized voice recordings. The English loop voice file romina-loop-ending-en.wav must be present alongside the HTML if the spoken English loop message is to play. The HTML references external audio files, which are not embedded in this package.
