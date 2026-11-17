@@ -2847,20 +2847,14 @@ function fuseBox(){
    (en?'The motor circuit is interrupted: two relay coils are missing and a ceramic fuse has burned out. Find the components and fit them one by one.':'Der Motorstromkreis ist unterbrochen: Zwei Relais-Spulen fehlen und eine Keramiksicherung ist durchgebrannt. Finde die Ersatzteile und setze sie einzeln ein.')+'<div class="note">'+(en?'A faded service note reads: TOOLS · MOTOR · FILES.':'Auf einem verblassten Wartungszettel steht: WERKZEUG · MOTOR · AKTEN.')+'</div>'+status,
    actions,'Keller');
  }
- if(!S.flags.clockSolved)return render(en?'THE REPAIRED FUSE BOX':'DER REPARIERTE SICHERUNGSKASTEN',en?'All components are installed. Four switches carry the clock symbols, but the correct order is not known yet.':'Alle Bauteile sind eingesetzt. Vier Schalter tragen die Uhrensymbole, doch die richtige Reihenfolge ist noch unbekannt.',[[en?'⬅ Cellar':'⬅ Keller',basement]],'Keller');
- if(!S.flags.basementSequence)return basementSequence();
- if(!S.flags.workshopPower)mark('workshopPower');
+ if(!S.flags.clockSolved)return render(en?'THE REPAIRED FUSE BOX':'DER REPARIERTE SICHERUNGSKASTEN',en?'All components are installed. Once the four clocks strike in unison, you can flip the switch.':'Alle Bauteile sind eingesetzt. Wenn die vier Uhren im Takt schlagen, kannst du den Schalter betätigen.',[[en?'⬅ Cellar':'⬅ Keller',basement]],'Keller');
+ if(!S.flags.workshopPower)return render(en?'THE MAIN SWITCH':'DER HAUPTSCHALTER',
+  en?'The four clocks strike in unison. The repaired circuit is ready. Flip the main switch to restore power to the workshop.':'Die vier Uhren schlagen im Takt. Der reparierte Stromkreis ist bereit. Betätige den Hauptschalter, um die Werkstatt mit Strom zu versorgen.',
+  [[en?'⚡ Flip main switch':'⚡ Hauptschalter betätigen',function(){mark('workshopPower');add('Silberschlüssel');fuseBox()}],[en?'⬅ Cellar':'⬅ Keller',basement]],'Keller');
  add('Silberschlüssel');
  render(en?'THE WORKING FUSE BOX':'DER SICHERUNGSKASTEN',
-  en?'Both coils hum, the new fuse holds, and the four switches are in their correct positions. The workshop has power again. A compartment contains a <strong>silver key</strong>.':'Die beiden Spulen summen, die neue Sicherung hält und alle vier Schalter stehen richtig. Die Werkstatt hat wieder Strom. In einem Fach liegt ein <strong>Silberschlüssel</strong>.',
+  en?'Both coils hum and the new fuse holds. The main switch is on, and the workshop has power again. A compartment contains a <strong>silver key</strong>.':'Die beiden Spulen summen und die neue Sicherung hält. Der Hauptschalter ist eingeschaltet. Die Werkstatt hat wieder Strom. In einem Fach liegt ein <strong>Silberschlüssel</strong>.',
   [[en?'⬅ Cellar':'⬅ Keller',basement]],'Keller');
-}
-function basementSequence(){
- ask('DIE SICHERUNGEN',
- selectedLanguage==='en'?'The replacement components are installed. The four switches carry the symbols from the clocks in the dining room. Enter their names in clock order, without spaces.':'Die Ersatzteile sind eingesetzt. Die vier Schalter tragen die Zeichen der Uhren im Speisesaal. Gib die Symbolnamen in der Reihenfolge der Uhren ein – ohne Leerzeichen.',
- ['__CLOCK_RANDOM__'],
- ()=>{mark('basementSequence');fuseBox()},
- basement)
 }
 function scanner(){
  secretFound("scanner");
@@ -3243,7 +3237,7 @@ function finalDoor(){
  if(!S.flags.pictureSolved)miss.push("Foto");
  if(!S.flags.clockSolved)miss.push("Uhren");
  if(!S.flags.mirrorSolved)miss.push("Spiegel");
- if(!S.flags.basementSequence)miss.push("Sicherungen");
+ if(!S.flags.workshopPower)miss.push("Sicherungen");
  if(!S.flags.blood)miss.push("Scanner");
  if(!has("Messingschlüssel"))miss.push("Messingschlüssel");
  if(!has("Silberschlüssel"))miss.push("Silberschlüssel");
