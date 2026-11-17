@@ -1128,6 +1128,8 @@ function initVariant(){
  clockAnswer:symbols.join(""),clockWords:symbols,
  // 36 mögliche Zeiten, jeweils in Fünf-Minuten-Schritten; vier einzigartige Zeiten pro Spiel.
  mirrorDigits:digits,mirrorAnswer:digits.slice().reverse().join(""),doorNumber:Math.floor(Math.random()*3)+1,
+ // Drei Regiezettel erhalten in jedem Durchlauf neue, gut erreichbare Fundorte.
+ showNoteLocations:shuffle(['Archiv','Speisesaal','Küche','Kinderzimmer','Badezimmer','Schlafzimmer','Keller']).slice(0,3),
  clockTimes:shuffle([
   [1,5],[1,20],[1,45],[2,10],[2,35],[2,55],
   [3,0],[3,25],[3,50],[4,15],[4,40],[4,55],
@@ -1327,12 +1329,14 @@ function hallBoard(){render('DIE LOSE BODENLEISTE','Zwischen Staub und Splittern
  ['⬅ Zurück',hall]],'Flur')}
 function archiveDrawers(){maybeDrawerSpider('Archiv');render('ARCHIVSCHUBLADEN','Einige Schubladen sind leer. Andere sind bis zum Rand mit beschädigten Akten gefüllt.',[
  ['📁 Theaterabrechnungen prüfen',()=>render('THEATERABRECHNUNGEN','Sechs Vorstellungen sind abgerechnet. Bei der siebten ist die Spalte für die Einnahmen leer.',[['⬅ Schubladen',archiveDrawers]],'Archiv')],
+ [selectedLanguage==='en'?'⚡ Take spare fuse from electrical records':'⚡ Ersatzsicherung aus alten Elektroakten nehmen',function(){add('Ersatzsicherung');archiveDrawers()},has('Ersatzsicherung')||!!S.flags.fuseSpareInstalled],
  ['🗞️ Polizeiberichte durchblättern',()=>hiddenFragment('archive_police',archiveDrawers,'Der Polizeibericht erwähnt sechs verschwundene Personen, doch die Seiten sind stark beschädigt.')],
  ['📷 Fotos betrachten',()=>render('ALTE FOTOS','Romina und Silas stehen lächelnd vor ihrem Theater. Im Hintergrund hängt ein Vorhang, der auf jedem Foto ein Stück weiter geöffnet ist.',[['⬅ Schubladen',archiveDrawers]],'Archiv')],
  ['🗃️ Schubladenboden abtasten',()=>hiddenFragment('archive_drawer',archiveDrawers,'Der Schubladenboden ist leer.')],
  ['⬅ Zurück',archive]],'Archiv')}
 function basementTools(){render('DER WERKZEUGKASTEN','Der Deckel quietscht. Unter Schrauben, Zangen und alten Uhrfedern liegt eine schmale Ledermappe.',[
  ['🧵 Alte Kupferwicklung aus dem Werkzeugkasten lösen',()=>{add('Kupferspule');basementTools()},has('Kupferspule')],
+ [selectedLanguage==='en'?'🌀 Take first relay coil from the toolbox':'🌀 Relais-Spule I aus dem Werkzeugkasten nehmen',function(){add('Relais-Spule I');basementTools()},has('Relais-Spule I')||!!S.flags.fuseCoil1Installed],
  ['⚙️ Uhrfedern untersuchen',()=>render('ZERBROCHENES UHRWERK','Hier wurden einst Uhrzeiger angefertigt. Vier Paar fehlen.',[['⬅ Werkzeugkasten',basementTools]],'Keller')],
  ['📓 Ledermappe öffnen',()=>hiddenFragment('basement_log',basementTools,'Auf dem Wachzettel ist nur noch ein eingeritztes Strichmännchen zu erkennen.')],
  ['🧰 Werkzeugkastenboden prüfen',()=>hiddenFragment('basement_tools',basementTools,'Unter dem Werkzeug ist nichts.')],
@@ -1370,7 +1374,7 @@ function speisesaal(){stopDaisy();
   var state=S.flags['clock'+n]?' · eingestellt':S.flags['clockHandsInstalled'+n]?' · Zeiger eingesetzt':' · ohne Zeiger';
   actions.push(['🕰️ Uhr '+(n+1)+' – '+prettySymbol(S.variant.clockWords[n])+state,function(){clockPuzzle(n,speisesaal)}]);
  })(i);
- actions.push([selectedLanguage==='en'?'🎵 Production note: Sound':'🎵 Zettel: Soundregie',function(){showNote(1,speisesaal)}]);
+ actions.push(...showNoteChoices('Speisesaal',speisesaal));
  actions.push(['🔎 Unter dem Speisesaal-Sideboard nachsehen',function(){clockRender('DAS SIDEBOARD','Unter einem umgestürzten Silbertablett liegt eine unbenutzte Taschenlampenbatterie.',[['🔋 Batterie einsetzen',function(){battery('speisesaal_sideboard');speisesaal()},!!S.flags.battery_speisesaal_sideboard],['⬅ Zurück',speisesaal]],'Speisesaal') }],[(selectedLanguage==='en'?'📜 Examine Yellowed Theater Letter Beneath the Tablecloth':'📜 Vergilbten Theaterbrief unter der Tischdecke prüfen'),function(){libraryFragment(0,speisesaal)},libraryFound(0)],[(selectedLanguage==='en'?'⬅ Back to the Hallway':'⬅ Zurück in den Flur'),hall]);
  clockRender('DER VERLASSENE SPEISESAAL',
   'Ein langer Tisch verschwindet im Staub. Vier schwere antike Uhren stehen an der Wand. Ihre Zeiger fehlen. Unter jedem Zifferblatt ist ein anderes Zeichen tief ins Holz geritzt.<br><br>'+ 
@@ -1759,6 +1763,7 @@ function bedroom(){
   ['🛏️ Unter das Bett schauen',bedroomBed],
   ['🚪 Den Kleiderschrank öffnen',bedroomWardrobe],
   ['🔋 Ersatzbatterie unter der Kommode',function(){battery('schlafzimmer_kommode');bedroom()},S.flags['battery_schlafzimmer_kommode']],
+  ...showNoteChoices('Schlafzimmer',bedroom),
   [(selectedLanguage==='en'?'⬅ Back to the Hallway':'⬅ Zurück in den Flur'),hall]
  ],'Schlafzimmer');
 }
@@ -2075,7 +2080,7 @@ function bedroomWardrobe(){
 function bathroom(){
  render('DAS BADEZIMMER',
  '<p>Die Fliesen sind kalt. In einer alten Badewanne steht dunkles, unbewegtes Wasser. Ein schwerer Vorhang hängt bis zum Boden.</p><p>Aus dem Wasserhahn fällt ein einzelner Tropfen. Danach ist es wieder still.</p>',
- [... (S.variant.workshopDollRoom==='Badezimmer'?[['🪆 Eine alte Puppe im Wäscheschrank untersuchen',rominasFirstDoll]]:[]),['🪞 Rückseite des Badezimmerspiegels prüfen',()=>hiddenFragment('bath_mirror_back',bathroom,'Hinter dem Spiegel ist nichts.')],['🧺 Saum der alten Handtücher prüfen',()=>hiddenFragment('bath_linen_seam',bathroom,'Die Handtücher sind brüchig und leer.')],['🛁 Die Badewanne untersuchen',bathTub],['🧺 Den Wäscheschrank öffnen',bathLinen],['🪞 Den beschlagenen Spiegel betrachten',bathMirror],['📜 Zerknitterte Aufzeichnung hinter einer Fliese',function(){libraryFragment(5,bathroom)},libraryFound(5)],['🩺 Den alten Medizinschrank untersuchen',medicineCabinet],[(selectedLanguage==='en'?'⬅ Back to the Hallway':'⬅ Zurück in den Flur'),hall]],'Badezimmer');
+ [... (S.variant.workshopDollRoom==='Badezimmer'?[['🪆 Eine alte Puppe im Wäscheschrank untersuchen',rominasFirstDoll]]:[]),['🪞 Rückseite des Badezimmerspiegels prüfen',()=>hiddenFragment('bath_mirror_back',bathroom,'Hinter dem Spiegel ist nichts.')],['🧺 Saum der alten Handtücher prüfen',()=>hiddenFragment('bath_linen_seam',bathroom,'Die Handtücher sind brüchig und leer.')],['🛁 Die Badewanne untersuchen',bathTub],['🧺 Den Wäscheschrank öffnen',bathLinen],['🪞 Den beschlagenen Spiegel betrachten',bathMirror],['📜 Zerknitterte Aufzeichnung hinter einer Fliese',function(){libraryFragment(5,bathroom)},libraryFound(5)],['🩺 Den alten Medizinschrank untersuchen',medicineCabinet],...showNoteChoices('Badezimmer',bathroom),[(selectedLanguage==='en'?'⬅ Back to the Hallway':'⬅ Zurück in den Flur'),hall]],'Badezimmer');
 }
 function medicineCabinet(){
  var key=has('Schlüssel zum Medizinschrank');
@@ -2214,6 +2219,13 @@ function showNote(index,back){
   '<p>'+(en?'A handwritten list of the three '+note.en.toLowerCase()+' settings. Remember the exact order:':'Eine handschriftliche Liste mit den drei Einstellungen für '+note.de+'. Merke dir die genaue Reihenfolge:')+'</p><div class="note">'+lines+'</div>',
   [[en?'⬅ Back':'⬅ Zurück',back]],S.room);
 }
+function showNoteChoices(room,back){
+ if(!S.variant||!Array.isArray(S.variant.showNoteLocations))return [];
+ var index=S.variant.showNoteLocations.indexOf(room);
+ if(index<0)return [];
+ var symbols=['🎚️','🎵','💺'];
+ return [[symbols[index]+' '+(selectedLanguage==='en'?'Examine handwritten production note':'Handschriftlichen Regiezettel untersuchen'),function(){showNote(index,back)}]];
+}
 function showNotesFound(){return SHOW_CATEGORIES.filter(function(_,i){return !!S.flags['showNote'+i]}).length;}
 function stageShowControls(){
  S.room='Bühne';
@@ -2235,7 +2247,7 @@ function stageShowControls(){
  app.innerHTML=html;
  document.getElementById('show-back').onclick=stageRoom;
  document.getElementById('show-check').onclick=function(){
-  if(showNotesFound()<3){toast(en?'Find all three production notes first (in the archive, dining room and workshop).':'Finde zuerst alle drei Zettel (Archiv, Speisesaal und Werkstatt).');return;}
+  if(showNotesFound()<3){toast(en?'Find all three production notes hidden in the house first.':'Finde zuerst alle drei im Haus versteckten Regiezettel.');return;}
   var allCorrect=SHOW_CATEGORIES.every(function(group,g){return group.correct.every(function(value,i){return Number(document.getElementById('show-'+g+'-'+i).value)===value && document.getElementById('show-'+g+'-'+i).value!=='';});});
   if(!allCorrect){wrong();toast(en?'The performance settings do not match the notes.':'Die Einstellungen stimmen nicht mit den Zetteln überein.');return;}
   mark('stageShowSolved');mark('stageShowStarted');
@@ -2456,7 +2468,7 @@ function archive(){stopDaisy();
   
   ["📦 Verstaubtes Kästchen zwischen den Akten",memoryBox],
   ["🗃️ Alte Archivschubladen durchsuchen",archiveDrawers],
-  ['🎚️ Zettel: Lichtregie prüfen',function(){showNote(0,archive)}],
+  ...showNoteChoices('Archiv',archive),
   ["📁 Vergilbte Akte 47 untersuchen",()=>hiddenFragment("archive_file",archive,"Die Seiten enthalten nur alte Berichte.")],
   ["📁 Akte 47 öffnen",archiveFile],
   ["📼 Alten Tonbandapparat untersuchen",archiveTape],
@@ -2556,7 +2568,6 @@ function puppetWorkshop(){
   [
    ['🪵 Werkbank untersuchen',workshopBench],
    ['📜 Rominas Notizen lesen',workshopNotes],
-   ['💺 Zettel: Sitzplatzplan prüfen',function(){showNote(2,puppetWorkshop)}],
    ['🎭 Unfertige Marionetten ansehen',workshopPuppets],
    ['⬅ Zurueck in den Flur',hall]
   ],'Werkstatt',true);
@@ -2564,13 +2575,17 @@ function puppetWorkshop(){
 function workshopBench(){
  var power=!!S.flags.workshopPower;
  var ready=has('Messingrohling III')&&has('Kupferspule')&&has('Stahlschablone');
+ var materials=[['Messingrohling III','Brass blank'],['Kupferspule','Copper coil'],['Stahlschablone','Steel template']];
+ var materialStatus=materials.map(function(part){return (has(part[0])?'✓ ':'○ ')+(selectedLanguage==='en'?part[1]:part[0]);}).join('<br>');
  render('ROMINAS SCHLUESSELMASCHINE',
  '<p>Eine schwere Maschine mit zwei Walzen, einem Schraubstock und einem alten Elektromotor. Ein Kabel fuehrt zum Sicherungskasten im Keller.</p>'+
  '<p>Strom: <strong>'+(power?'eingeschaltet':'ausgeschaltet')+'</strong>.</p>'+
  '<p>Benötigt: Messingrohling, Kupferspule und Stahlschablone.</p>'+
+ (S.flags.keyThreeForged?'':'<div class="note">'+(selectedLanguage==='en'?'Collected materials:':'Gesammelte Materialien:')+'<br>'+materialStatus+'</div>')+
  (S.flags.keyThreeForged?'<p>Auf der Werkbank liegt nur noch feiner Metallstaub. Schlüssel III wurde bereits hergestellt.</p>':''),
  [
  ['🔩 Messingrohling aus der Werkbankschublade nehmen',function(){add('Messingrohling III');workshopBench()},has('Messingrohling III')],
+ [selectedLanguage==='en'?'🌀 Take second relay coil from motor drawer':'🌀 Relais-Spule II aus der Motorschublade nehmen',function(){add('Relais-Spule II');workshopBench()},has('Relais-Spule II')||!!S.flags.fuseCoil2Installed],
  ['⚙️ Maschine starten',function(){
    if(!S.flags.workshopPower)return render('KEIN STROM','Der Motor bleibt stumm. Ein Schild verweist auf den Sicherungskasten im Keller.',[['⬅ Werkbank',workshopBench]],'Werkstatt');
    if(!ready)return render('DIE MASCHINE STOCKT','Die Walzen drehen kurz an, doch es fehlen Werkstücke. Rominas Notiz nennt Messing, Kupfer und eine Stahlschablone.',[['⬅ Werkbank',workshopBench]],'Werkstatt');
@@ -2616,6 +2631,7 @@ function kids(){
   ["🧸 Alten Kuscheltierhaufen untersuchen",kidsPlushPile],
   ...(S.variant.workshopDollRoom==='Kinderzimmer'?[['🪆 Eine alte Puppe zwischen den Kuscheltieren untersuchen',rominasFirstDoll]]:[]),
   ["🔋 Batterie aus dem Schrank nehmen",()=>{battery("kinderzimmer");kids()},S.flags["battery_kinderzimmer"]],
+  ...showNoteChoices('Kinderzimmer',kids),
   ["⬅ Flur",hall]
  ],"Kinderzimmer",true)
 }
@@ -2794,6 +2810,7 @@ function basement(){stopDaisy();
   ["⚡ Sicherungskasten",fuseBox],
   ["🩸 Scanner",scanner],
   ["👂 Dem Atmen folgen",breathing],
+  ...showNoteChoices('Keller',basement),
   ["⬅ Flur",hall]
  ],"Keller",true)
 }
@@ -2807,26 +2824,48 @@ function breathing(){dollJumpscare(false);
  'Du findest eine Ersatzbatterie.<br><br>An der Wand steht frisch geschrieben:<div class="note">DREH DICH NICHT UM.</div>',
  [["⬅ Zurück",basement]],"Keller")
 }
+var fuseParts=[
+ {item:'Relais-Spule I',flag:'fuseCoil1Installed',de:'Spule I',en:'Coil I'},
+ {item:'Relais-Spule II',flag:'fuseCoil2Installed',de:'Spule II',en:'Coil II'},
+ {item:'Ersatzsicherung',flag:'fuseSpareInstalled',de:'Sicherung',en:'Fuse'}
+];
+Object.assign(equipmentLabels,{'Relais-Spule I':'Relay Coil I','Relais-Spule II':'Relay Coil II','Ersatzsicherung':'Spare Fuse'});
+function fuseInstall(item,flag){
+ if(S.flags[flag]||!has(item))return fuseBox();
+ S.items.splice(S.items.indexOf(item),1);
+ mark(flag);
+ toast(selectedLanguage==='en'?'Component installed.':'Bauteil eingesetzt.');
+ fuseBox();
+}
 function fuseBox(){
- if(!S.flags.clockSolved)return render("DER SICHERUNGSKASTEN",'Vier Sicherungen tragen dieselben Zeichen wie die Uhren.<br><br>Du kennst die richtige Reihenfolge noch nicht.',[["⬅ Zurück",basement]],"Keller");
+ var en=selectedLanguage==='en';
+ if(fuseParts.some(function(part){return !S.flags[part.flag]})){
+  var status=fuseParts.map(function(part){return '<div class="note">'+(S.flags[part.flag]?'✓ ':'✕ ')+(en?part.en:part.de)+': '+(S.flags[part.flag]?(en?'installed':'eingesetzt'):has(part.item)?(en?'in inventory':'im Inventar'):(en?'missing':'fehlt'))+'</div>';}).join('');
+  var actions=fuseParts.map(function(part){return [(en?'🔧 Install ':'🔧 ')+(en?part.en:part.de)+(en?'':' einsetzen'),function(){fuseInstall(part.item,part.flag)},!!S.flags[part.flag]||!has(part.item)];});
+  actions.push([en?'⬅ Cellar':'⬅ Keller',basement]);
+  return render(en?'THE OPEN FUSE BOX':'DER OFFENE SICHERUNGSKASTEN',
+   (en?'The motor circuit is interrupted: two relay coils are missing and a ceramic fuse has burned out. Find the components and fit them one by one.':'Der Motorstromkreis ist unterbrochen: Zwei Relais-Spulen fehlen und eine Keramiksicherung ist durchgebrannt. Finde die Ersatzteile und setze sie einzeln ein.')+'<div class="note">'+(en?'A faded service note reads: TOOLS · MOTOR · FILES.':'Auf einem verblassten Wartungszettel steht: WERKZEUG · MOTOR · AKTEN.')+'</div>'+status,
+   actions,'Keller');
+ }
+ if(!S.flags.clockSolved)return render(en?'THE REPAIRED FUSE BOX':'DER REPARIERTE SICHERUNGSKASTEN',en?'All components are installed. Four switches carry the clock symbols, but the correct order is not known yet.':'Alle Bauteile sind eingesetzt. Vier Schalter tragen die Uhrensymbole, doch die richtige Reihenfolge ist noch unbekannt.',[[en?'⬅ Cellar':'⬅ Keller',basement]],'Keller');
  if(!S.flags.basementSequence)return basementSequence();
  if(!S.flags.workshopPower)mark('workshopPower');
- add("Silberschlüssel");
- render("DER SICHERUNGSKASTEN",
- 'Die richtige Reihenfolge aktiviert ein verborgenes Fach. Ein tiefes Brummen geht durch die Wand: Die alte Werkstatt hat wieder Strom.<br><br>Darin liegt ein <strong>Silberschlüssel</strong>.',
- [["⬅ Keller",basement]],"Keller")
+ add('Silberschlüssel');
+ render(en?'THE WORKING FUSE BOX':'DER SICHERUNGSKASTEN',
+  en?'Both coils hum, the new fuse holds, and the four switches are in their correct positions. The workshop has power again. A compartment contains a <strong>silver key</strong>.':'Die beiden Spulen summen, die neue Sicherung hält und alle vier Schalter stehen richtig. Die Werkstatt hat wieder Strom. In einem Fach liegt ein <strong>Silberschlüssel</strong>.',
+  [[en?'⬅ Cellar':'⬅ Keller',basement]],'Keller');
 }
 function basementSequence(){
- ask("DIE SICHERUNGEN",
- 'Auf den vier Sicherungen stehen dieselben Wörter, die dir die Uhren gegeben haben.<br><br>Setze sie in der Reihenfolge ein, in der du sie in den vier Räumen gefunden hast.<br><br>Gib die vier Wörter ohne Leerzeichen ein.',
- ["__CLOCK_RANDOM__"],
- ()=>{mark("basementSequence");fuseBox()},
+ ask('DIE SICHERUNGEN',
+ selectedLanguage==='en'?'The replacement components are installed. The four switches carry the symbols from the clocks in the dining room. Enter their names in clock order, without spaces.':'Die Ersatzteile sind eingesetzt. Die vier Schalter tragen die Zeichen der Uhren im Speisesaal. Gib die Symbolnamen in der Reihenfolge der Uhren ein – ohne Leerzeichen.',
+ ['__CLOCK_RANDOM__'],
+ ()=>{mark('basementSequence');fuseBox()},
  basement)
 }
 function scanner(){
  secretFound("scanner");
  if(S.flags.silasRecipeFound)return render('DER OFFENE BLUTSCANNER','Das Fach steht offen. Silas’ Rezept hast du bereits eingesteckt.',[['⬅ Keller',basement]],'Keller');
- if(!has('Altes Küchenmesser'))return render('DER BLUTSCANNER','Eine rote Kontrollleuchte blinkt. Auf dem Display steht: <em>BLUTPROBE ERFORDERLICH</em>. Du brauchst ein geeignetes Werkzeug.',[['⬅ Keller',basement]],'Keller');
+ if(!has('Altes Küchenmesser'))return render('DER BLUTSCANNER',selectedLanguage==='en'?'The red display reads: <em>BLOOD SAMPLE REQUIRED</em>. A sharp tool is needed. A small knife lay on the kitchen table.':'Die rote Anzeige meldet: <em>BLUTPROBE ERFORDERLICH</em>. Ein scharfes Werkzeug fehlt. In der Küche lag ein kleines Messer auf dem Tisch.',[['⬅ Keller',basement]],'Keller');
  render('DER BLUTSCANNER','Das alte Küchenmesser liegt schwer in deiner Hand. Du könntest eine kleine Blutprobe abgeben.',[
  ['🩸 Blutprobe abgeben',function(){mark('blood');mark('silasRecipeFound');add('Silas’ Rezept');render('DAS GEHEIME FACH','Die Anzeige wechselt auf Grün. Hinter einer Metallklappe liegt ein vergilbtes Blatt mit Silas’ Unterschrift: <strong>Das Elixier der Weisheit</strong>. Die Anweisungen sind in Rätseln geschrieben. In der Küche könnte man die Zutaten finden.',[['📜 Rezept lesen',silasRecipe],['⬅ Keller',basement]],'Keller')}],['⬅ Keller',basement]],'Keller');
 }
@@ -2839,7 +2878,8 @@ function silasRecipe(){
 var silasIngredients=['Salbei','Wermut','Mondwasser','Silberstaub','Rosmarin','Holzasche','Honig','Tollkirsche','Salz','Schwarzes Öl'];
 var silasCorrect=['Salbei','Wermut','Mondwasser','Silberstaub','Rosmarin','Holzasche'];
 function kitchen(){stopDaisy();
- render('DIE VERLASSENE KÜCHE','Ein großer Herd steht unter einer schwarzen Dunsthaube. Zehn beschriftete Gefäße stehen auf einem Regal. Auf dem Arbeitstisch liegt ein altes Küchenmesser. Daneben wartet ein schwerer Kessel.',[
+ render('DIE VERLASSENE KÜCHE',selectedLanguage==='en'?'A stove stands beneath a black hood. Ten labelled jars line a shelf. A small kitchen knife lies on the table; a red droplet is engraved on its handle, matching the scanner in the cellar. A heavy cauldron waits beside it.':'Ein großer Herd steht unter einer schwarzen Dunsthaube. Zehn beschriftete Gefäße stehen auf einem Regal. Auf dem Arbeitstisch liegt ein altes Küchenmesser. Am Griff ist ein roter Tropfen eingeritzt – dasselbe Zeichen wie am Scanner im Keller. Daneben wartet ein schwerer Kessel.',[
+ ...showNoteChoices('Küche',kitchen),
  ['🔪 Altes Küchenmesser nehmen',function(){add('Altes Küchenmesser');kitchen()},has('Altes Küchenmesser')],
  ['📜 Silas’ Rezept lesen',silasRecipe,!S.flags.silasRecipeFound],
  ['📐 Alte Werkstattzeichnung hinter dem Herd',function(){libraryFragment(3,kitchen)},libraryFound(3)],
